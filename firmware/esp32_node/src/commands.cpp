@@ -61,11 +61,6 @@ void commands_handle(const CommandPacket& cmd) {
             Serial.println("[CMD] test alarma executat");
             break;
 
-        case CMD_CALIBRATE_SENSOR:
-            // placeholder - ar actualiza baseline-ul ADC
-            Serial.println("[CMD] calibrare senzor");
-            break;
-
         case CMD_SET_THRESHOLDS:
             _temp_warn = cmd.param1;
             _gas_alert = (int)cmd.param2;
@@ -75,11 +70,6 @@ void commands_handle(const CommandPacket& cmd) {
         case CMD_SET_MAINTENANCE_MODE:
             _maintenance = (bool)(int)cmd.param1;
             Serial.printf("[CMD] mentenanta: %s\n", _maintenance ? "ON" : "OFF");
-            break;
-
-        case CMD_REQUEST_STATUS:
-            // loop-ul principal trimite un pachet de status la urmatorul ciclu
-            Serial.println("[CMD] status solicitat");
             break;
 
         case CMD_FORCE_ALERT:
