@@ -63,7 +63,7 @@ def _parse_packet(raw: dict) -> Optional[SensorPacket]:
             # daca gateway-ul nu are RTC/NTP, timestamp-ul din pachet e "2026-01-01T00:00:00" (fals)
             # in acel caz backend-ul foloseste datetime.utcnow() ca fallback - suficient pt demo
             # pentru productie: fie adaugi NTP pe gateway (WiFi), fie folosesti un modul RTC (DS3231)
-            timestamp    = datetime.fromisoformat(raw["timestamp"]) if "timestamp" in raw else datetime.utcnow(),
+            timestamp    = datetime.utcnow(),
         )
     except Exception as exc:
         log.error("eroare parsare pachet: %s - %s", raw, exc)
