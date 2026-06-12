@@ -156,7 +156,8 @@ function createNodeCard(n) {
 }
 
 function nodeCardHTML(n) {
-  const riskW     = Math.min(100, n.risk_score || 0);
+  const offline   = n.status === 'OFFLINE';
+  const riskW     = offline ? 0 : Math.min(100, n.risk_score || 0);
   const riskColor = riskW >= 70 ? '#ef4444' : riskW >= 40 ? '#f59e0b' : '#22c55e';
   const gasColor  = n.gas_level_color || '#22c55e';
   return `
@@ -165,10 +166,10 @@ function nodeCardHTML(n) {
       <span class="nc-badge nc-badge-${n.status}">${n.status}</span>
     </div>
     <div class="nc-metrics">
-      <span><strong>${n.temperature != null ? n.temperature.toFixed(1) : '–'}°C</strong>Temp</span>
-      <span><strong style="color:${gasColor}">${n.gas_value ?? '–'}</strong>Gaz</span>
-      <span><strong>${n.risk_score ?? '–'}</strong>Risc</span>
-      <span><strong>${n.battery ?? '–'}%</strong>Bat</span>
+      <span><strong>${offline ? '–' : (n.temperature != null ? n.temperature.toFixed(1) + '°C' : '–')}</strong>Temp</span>
+      <span><strong style="color:${offline ? '#6b7280' : gasColor}">${offline ? '–' : (n.gas_value ?? '–')}</strong>Gaz</span>
+      <span><strong>${offline ? '–' : (n.risk_score ?? '–')}</strong>Risc</span>
+      <span><strong>${offline ? '–' : (n.battery ?? '–') + '%'}</strong>Bat</span>
     </div>
     <div class="risk-bar-wrap">
       <div class="risk-bar" style="width:${riskW}%;background:${riskColor}"></div>
@@ -198,31 +199,41 @@ function selectNode(nodeId) {
 function updateDetailPanel(nodeId) {
   const n = nodes[nodeId];
   if (!n) return;
+  const offline = n.status === 'OFFLINE';
 
   document.getElementById('detail-node-id').textContent = `${nodeId}`;
   document.getElementById('d-zone').textContent   = n.zone || '–';
   document.getElementById('d-status').textContent = n.status || '–';
   document.getElementById('d-status').style.color = NODE_COLORS[n.status] || '#fff';
-  document.getElementById('d-risk').textContent   = n.risk_score ?? '–';
-  document.getElementById('d-temp').textContent   = n.temperature != null ? `${n.temperature.toFixed(1)} °C` : '–';
-  document.getElementById('d-hum').textContent    = n.humidity  != null ? `${n.humidity.toFixed(1)} %` : '–';
-  document.getElementById('d-pres').textContent   = n.pressure  != null ? `${n.pressure.toFixed(1)} hPa` : '–';
+  document.getElementById('d-risk').textContent   = offline ? '–' : (n.risk_score ?? '–');
+  document.getElementById('d-temp').textContent   = offline ? '–' : (n.temperature != null ? `${n.temperature.toFixed(1)} °C` : '–');
+  document.getElementById('d-hum').textContent    = offline ? '–' : (n.humidity  != null ? `${n.humidity.toFixed(1)} %` : '–');
+  document.getElementById('d-pres').textContent   = offline ? '–' : (n.pressure  != null ? `${n.pressure.toFixed(1)} hPa` : '–');
 
-  const gasLevel = n.gas_level || 'GAS_NORMAL';
-  const gasColor = n.gas_level_color || '#22c55e';
-  document.getElementById('d-gas').innerHTML =
-    `${n.gas_value ?? '–'} &nbsp;<span class="gas-badge"><span class="gas-dot" style="background:${gasColor}"></span>${GAS_LEVEL_LABELS[gasLevel] || gasLevel}</span>`;
+  if (offline) {
+    document.getElementById('d-gas').textContent = '–';
+  } else {
+    const gasLevel = n.gas_level || 'GAS_NORMAL';
+    const gasColor = n.gas_level_color || '#22c55e';
+    document.getElementById('d-gas').innerHTML =
+      `${n.gas_value ?? '–'} &nbsp;<span class="gas-badge"><span class="gas-dot" style="background:${gasColor}"></span>${GAS_LEVEL_LABELS[gasLevel] || gasLevel}</span>`;
+  }
 
-  document.getElementById('d-rssi').textContent = n.rssi != null ? `${n.rssi} dBm` : '–';
-  document.getElementById('d-lat').textContent  = n.latency_ms != null ? `${n.latency_ms} ms` : '–';
+  document.getElementById('d-rssi').textContent = offline ? '–' : (n.rssi != null ? `${n.rssi} dBm` : '–');
+  document.getElementById('d-lat').textContent  = offline ? '–' : (n.latency_ms != null ? `${n.latency_ms} ms` : '–');
 
-  const batt = n.battery ?? 100;
   const bBar = document.getElementById('d-batt-bar');
-  bBar.style.width      = `${batt}%`;
-  bBar.style.background = batt < 20 ? '#ef4444' : batt < 40 ? '#f59e0b' : '#22c55e';
-  document.getElementById('d-batt').textContent = `${batt}%`;
+  if (offline) {
+    bBar.style.width = '0%';
+    document.getElementById('d-batt').textContent = '–';
+  } else {
+    const batt = n.battery ?? 100;
+    bBar.style.width      = `${batt}%`;
+    bBar.style.background = batt < 20 ? '#ef4444' : batt < 40 ? '#f59e0b' : '#22c55e';
+    document.getElementById('d-batt').textContent = `${batt}%`;
+  }
 
-  const route = Array.isArray(n.route) ? n.route.map(id => id === 0 ? 'GW' : `N${id}`).join(' → ') : '–';
+  const route = offline ? '–' : (Array.isArray(n.route) ? n.route.map(id => id === 0 ? 'GW' : `N${id}`).join(' → ') : '–');
   document.getElementById('d-route').textContent = route;
 }
 

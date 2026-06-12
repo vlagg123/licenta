@@ -97,7 +97,7 @@ class NodeState(BaseModel):
     temperature:     float      = 25.0
     humidity:        float      = 50.0
     pressure:        float      = 1013.0
-    gas_value:       int        = 50
+    gas_value:       int        = 0
     gas_level:       GasLevel   = GasLevel.NORMAL
     gas_level_color: str        = "#22c55e"
     risk_score:      int        = 0
