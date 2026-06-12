@@ -157,8 +157,10 @@ async def _on_packet(pkt: SensorPacket) -> None:
                                    pkt.pressure, pkt.gas_value, pkt.risk_score,
                                    final_status, pkt.timestamp)
         if final_status != prev_status:
+            ps = prev_status.value  if hasattr(prev_status,  'value') else prev_status
+            fs = final_status.value if hasattr(final_status, 'value') else final_status
             _record_event(pkt.node_id, final_status,
-                          f"Nod {pkt.node_id} ({ns.zone}): {prev_status} -> {final_status} | risc={pkt.risk_score} | t={pkt.temperature}C gaz={pkt.gas_value}",
+                          f"Nod {pkt.node_id} ({ns.zone}): {ps} -> {fs} | risc={pkt.risk_score} | t={pkt.temperature}C gaz={pkt.gas_value}",
                           pkt.risk_score)
     except Exception as exc:
         log.error("eroare DB on_packet nod %s: %s", pkt.node_id, exc)
