@@ -83,11 +83,12 @@ class SerialGateway:
         while True:
             try:
                 reader, writer = await serial_asyncio.open_serial_connection(
-                    url=SERIAL_PORT, baudrate=SERIAL_BAUDRATE
+                    url=SERIAL_PORT, baudrate=SERIAL_BAUDRATE, limit=2**20
                 )
                 self._writer    = writer
                 self._connected = True
                 log.info("port serial %s deschis", SERIAL_PORT)
+                await asyncio.sleep(2)  # asteapta sa treaca mesajele de boot ESP32
                 await self._read_loop(reader)
             except Exception as exc:
                 self._connected = False
