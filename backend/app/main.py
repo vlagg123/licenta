@@ -233,6 +233,10 @@ def get_events_endpoint(limit: int = Query(100, ge=1, le=1000), node_id: Optiona
 
 @app.post("/api/commands", response_model=CommandResponse, tags=["Commands"])
 async def send_command(cmd: NodeCommand):
+    ns_check = node_states.get(cmd.target_node)
+    if ns_check and ns_check.status == NodeStatus.OFFLINE:
+        raise HTTPException(400, f"Nodul {cmd.target_node} este offline - comanda ignorata")
+
     log_command(cmd.command_id, cmd.target_node, cmd.command_type, cmd.payload, cmd.timestamp)
     _record_event(cmd.target_node, "COMMAND", f"Comanda {cmd.command_type} -> nod {cmd.target_node}", 0)
 
