@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MAX_HOPS 4
+
 // ── ESP-NOW packet structure ───────────────────────────────────────────────
 // Sent by sensor nodes to gateway (or next hop).
 struct SensorPacket {
@@ -31,8 +33,6 @@ struct CommandPacket {
     float   param1;        // generic float parameter
     float   param2;
 };
-
-#define MAX_HOPS 4
 
 void comm_init(uint8_t selfId, const uint8_t* gatewayMac);
 bool comm_send_packet(const SensorPacket& pkt, const uint8_t* destMac);

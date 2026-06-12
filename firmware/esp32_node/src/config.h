@@ -11,7 +11,7 @@
 // DE MODIFICAT PENTRU PARTEA HARDWARE:
 // citeste MAC-ul gateway-ului din Serial Monitor dupa primul flash al gateway-ului
 // (apare ca "[GW] MAC: AA:BB:CC:DD:EE:FF") si inlocuieste valorile de mai jos
-static const uint8_t GATEWAY_MAC[6] = { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x00 };
+static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 
 // DE MODIFICAT PENTRU PARTEA HARDWARE:
 // verifica pinii pe schema electronica a placii tale de ESP32
