@@ -515,45 +515,17 @@ function drawFloorplan() {
   });
 }
 
-async function simAlert(nodeId) {
-  try {
-    await post(`/api/simulation/alert/${nodeId}`);
-    showToast(`Alerta simulata pe N${nodeId}`, 'alert');
-  } catch(e) { showToast(`Eroare alerta N${nodeId}: ${e.message}`, 'alert'); }
-}
-
 async function simOffline(nodeId) {
   try {
     await post(`/api/simulation/offline/${nodeId}`);
-    showToast(`N${nodeId} fortat offline`, 'warn');
+    showToast(`N${nodeId} marcat offline`, 'warn');
   } catch(e) { showToast(`Eroare offline N${nodeId}: ${e.message}`, 'alert'); }
-}
-
-async function simRouteFail(nodeId) {
-  try {
-    await post(`/api/simulation/route-failure?node_id=${nodeId}`);
-    showToast(`Ruta alternativa activata N${nodeId}`, 'warn');
-  } catch(e) { showToast(`Eroare ruta N${nodeId}: ${e.message}`, 'alert'); }
-}
-
-async function simPacketLoss() {
-  try {
-    await post(`/api/simulation/packet-loss?pct=0.4`);
-    showToast('Pierdere pachete 40% activata', 'warn');
-  } catch(e) { showToast(`Eroare packet loss: ${e.message}`, 'alert'); }
-}
-
-async function simRestore() {
-  try {
-    await post('/api/simulation/restore');
-    showToast('Conexiune restaurata', 'ok');
-  } catch(e) { showToast(`Eroare restaurare: ${e.message}`, 'alert'); }
 }
 
 async function simResetAll() {
   try {
     await post('/api/simulation/reset');
-    showToast('Sistem resetat la NORMAL', 'ok');
+    showToast('Sistem resetat', 'ok');
   } catch(e) { showToast(`Eroare reset: ${e.message}`, 'alert'); }
 }
 

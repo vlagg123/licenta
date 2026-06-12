@@ -1,6 +1,6 @@
 import os
 
-SIMULATION_MODE: bool = os.getenv("SIMULATION_MODE", "true").lower() == "true"
+SIMULATION_MODE: bool = os.getenv("SIMULATION_MODE", "false").lower() == "true"
 
 # DE MODIFICAT PENTRU PARTEA HARDWARE:
 # SERIAL_PORT depinde de sistemul de operare si de portul USB folosit
