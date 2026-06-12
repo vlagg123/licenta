@@ -299,6 +299,8 @@ async def sim_reset():
         ns.risk_score      = 0
         ns.gas_level       = GasLevel.NORMAL
         ns.gas_level_color = "#22c55e"
+        if not SIMULATION_MODE:
+            ns.last_seen   = None
     _record_event(0, "SIM_RESET", "[SIM] Sistem resetat la normal", 0)
     # trimite starea completa imediat ca UI-ul sa se actualizeze fara sa astepte pachetul urmator
     await manager.broadcast({
