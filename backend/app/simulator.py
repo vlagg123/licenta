@@ -8,7 +8,7 @@ from typing import Optional
 
 from app.config import NODES_CONFIG, SIMULATION_INTERVAL, NEIGHBOUR_TABLE
 from app.models import NodeState, NodeStatus, SensorPacket, MessageType, Priority, GasThresholds
-from app.risk_engine import compute_risk_score, classify_risk
+from app.risk_engine import compute_risk_score, classify_status_direct
 from app.routing import route_to_gateway, estimate_latency
 
 _forced_alert:    set[int]   = set()
@@ -157,15 +157,15 @@ def _generate_reading(node_id: int, node_states: dict[int, NodeState]) -> Option
         gas_value        = gas,
         temp_history     = list(_temp_history[node_id]),
         neighbour_alerts = neighbour_alerts,
-        battery          = battery,
         rssi             = rssi,
         gas_thresholds   = _current_thresholds,
     )
 
-    if node_id in _forced_alert:
-        risk_score = max(risk_score, 75)
+    status, msg_type, priority = classify_status_direct(gas, temp, _current_thresholds)
 
-    status, msg_type, priority = classify_risk(risk_score)
+    if node_id in _forced_alert:
+        status   = NodeStatus.ALERT
+        msg_type = MessageType.ALERT
 
     # mentenanta - nodul ramane online dar nu emite alarme
     if node_id in _maintenance_nodes:
