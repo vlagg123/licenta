@@ -18,9 +18,9 @@ static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 // GPIO 34 e input-only (ADC1), bun pentru MQ; daca folosesti alta placa ajusteaza
 #define PIN_MQ2        34   // intrare analogica MQ-2 / MQ-135 (ADC1)
 #define PIN_LED        2    // LED built-in (activ HIGH pe majoritatea placilor)
-#define PIN_BUZZER     4    // buzzer pasiv
-#define PIN_BME_SDA    21   // I2C SDA pentru BME280
-#define PIN_BME_SCL    22   // I2C SCL pentru BME280
+#define PIN_BUZZER     27   // buzzer VCC control - pe stanga
+#define PIN_BME_SDA    33   // I2C SDA pentru BME280 - pe stanga
+#define PIN_BME_SCL    32   // I2C SCL pentru BME280 - pe stanga
 
 // DE MODIFICAT PENTRU PARTEA HARDWARE:
 // adresa I2C a BME280: 0x76 daca pinul SDO e la GND, 0x77 daca e la VCC

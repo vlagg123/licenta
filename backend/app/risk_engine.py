@@ -59,11 +59,8 @@ def _neighbour_score(neighbour_alerts: int) -> int:
     return 15
 
 
-def _comm_score(battery: int, rssi: int) -> int:
-    score = 0
-    if battery < THRESHOLDS["battery_low"]: score += 5
-    if rssi < -80:                          score += 5
-    return score
+def _comm_score(rssi: int) -> int:
+    return 5 if rssi < -80 else 0
 
 
 def compute_risk_score(
@@ -71,24 +68,31 @@ def compute_risk_score(
     gas_value: int,
     temp_history: list[float],
     neighbour_alerts: int,
-    battery: int,
     rssi: int,
     gas_thresholds: GasThresholds | None = None,
 ) -> int:
-    # scor total 0-100, combinatie din mai multi parametri
     score = (
         _temperature_score(temperature)
         + _gas_score(gas_value, gas_thresholds)
         + _trend_score(temp_history)
         + _neighbour_score(neighbour_alerts)
-        + _comm_score(battery, rssi)
+        + _comm_score(rssi)
     )
     return min(100, max(0, score))
 
 
-def classify_risk(risk_score: int) -> tuple[NodeStatus, MessageType, Priority]:
-    if risk_score >= 70:
+def classify_status_direct(
+    gas_value: int,
+    temperature: float,
+    thresholds: GasThresholds,
+) -> tuple[NodeStatus, MessageType, Priority]:
+    gas_critical  = gas_value >= thresholds.critical_min
+    temp_critical = temperature >= thresholds.temp_critical
+    gas_warning   = gas_value > thresholds.normal_max
+    temp_warning  = temperature >= thresholds.temp_warning
+
+    if gas_critical or temp_critical:
         return NodeStatus.ALERT, MessageType.ALERT, Priority.HIGH
-    if risk_score >= 40:
+    if gas_warning or temp_warning:
         return NodeStatus.WARNING, MessageType.WARNING, Priority.NORMAL
     return NodeStatus.NORMAL, MessageType.NORMAL, Priority.NORMAL

@@ -24,7 +24,7 @@ void commands_init(uint8_t ledPin, uint8_t buzzerPin) {
 static void _beep(int times, int onMs, int offMs) {
     if (_muted) return;
     for (int i = 0; i < times; i++) {
-        digitalWrite(_buzzer_pin, HIGH);
+        digitalWrite(_buzzer_pin, LOW);
         delay(onMs);
         digitalWrite(_buzzer_pin, LOW);
         delay(offMs);

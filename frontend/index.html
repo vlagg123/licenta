@@ -20,65 +20,73 @@
         <span id="ws-indicator" class="dot dot-off" title="WebSocket"></span>
         <span id="clock"></span>
       </div>
-      <button class="btn btn-settings" onclick="openSettings()">⚙ Praguri Gaz</button>
+      <button class="btn btn-settings" onclick="openSettings()">⚙ Setari Alarma</button>
     </div>
   </header>
 
   <div id="settings-overlay" class="modal-overlay" onclick="closeSettings(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h2>Praguri Senzor Gaz</h2>
+        <h2>Setari Alarma</h2>
         <button class="modal-close" onclick="closeSettings()">✕</button>
       </div>
 
       <div class="modal-body">
-        <p class="modal-desc">Modifica pragurile pentru clasificarea nivelului de gaz/fum. Valorile sunt salvate persistent si aplicate imediat.</p>
+        <p class="modal-desc">Seteaza pragurile pentru gaz/fum si temperatura. La atingerea nivelului CRITIC se declanseaza automat buzzerul si alerta.</p>
 
+        <div class="th-section-title">Gaz / Fum (ADC 0–4095)</div>
         <div class="threshold-grid">
           <div class="th-row">
             <span class="th-dot" style="background:#22c55e"></span>
-            <label>GAS_NORMAL – max</label>
+            <label>Normal – max</label>
             <input type="number" id="th-normal-max" min="0" max="4095" value="300" />
             <span class="th-unit">ADC</span>
           </div>
           <div class="th-row">
             <span class="th-dot" style="background:#86efac"></span>
-            <label>GAS_LOW – max</label>
+            <label>Scazut – max</label>
             <input type="number" id="th-low-max" min="0" max="4095" value="450" />
             <span class="th-unit">ADC</span>
           </div>
           <div class="th-row">
             <span class="th-dot" style="background:#f59e0b"></span>
-            <label>GAS_MEDIUM – max</label>
+            <label>Mediu – max (Warning)</label>
             <input type="number" id="th-medium-max" min="0" max="4095" value="600" />
             <span class="th-unit">ADC</span>
           </div>
           <div class="th-row">
             <span class="th-dot" style="background:#f97316"></span>
-            <label>GAS_HIGH – max</label>
+            <label>Ridicat – max (Warning)</label>
             <input type="number" id="th-high-max" min="0" max="4095" value="750" />
             <span class="th-unit">ADC</span>
           </div>
           <div class="th-row">
             <span class="th-dot" style="background:#ef4444"></span>
-            <label>GAS_CRITICAL – min</label>
+            <label>Critic – min (Buzzer)</label>
             <input type="number" id="th-critical-min" min="0" max="4095" value="751" />
             <span class="th-unit">ADC</span>
           </div>
         </div>
 
-        <div class="th-option">
-          <input type="checkbox" id="th-buzzer-high" />
-          <label for="th-buzzer-high">Activeaza buzzer automat la GAS_HIGH</label>
+        <div class="th-section-title" style="margin-top:16px">Temperatura (°C)</div>
+        <div class="threshold-grid">
+          <div class="th-row">
+            <span class="th-dot" style="background:#f59e0b"></span>
+            <label>Temp Warning – min</label>
+            <input type="number" id="th-temp-warning" min="0" max="125" value="45" step="0.5" />
+            <span class="th-unit">°C</span>
+          </div>
+          <div class="th-row">
+            <span class="th-dot" style="background:#ef4444"></span>
+            <label>Temp Critic – min (Buzzer)</label>
+            <input type="number" id="th-temp-critical" min="0" max="125" value="65" step="0.5" />
+            <span class="th-unit">°C</span>
+          </div>
         </div>
 
-        <div class="th-legend">
-          <div class="legend-title">Referinta niveluri:</div>
-          <div class="legend-row"><span class="th-dot" style="background:#22c55e"></span><span>GAS_NORMAL – aer curat, nicio actiune</span></div>
-          <div class="legend-row"><span class="th-dot" style="background:#86efac"></span><span>GAS_LOW – usor crescut, doar informativ</span></div>
-          <div class="legend-row"><span class="th-dot" style="background:#f59e0b"></span><span>GAS_MEDIUM – suspect, WARNING vizual fara buzzer</span></div>
-          <div class="legend-row"><span class="th-dot" style="background:#f97316"></span><span>GAS_HIGH – WARNING puternic, buzzer optional</span></div>
-          <div class="legend-row"><span class="th-dot" style="background:#ef4444"></span><span>GAS_CRITICAL – ALERTA, buzzer activ</span></div>
+        <div class="th-legend" style="margin-top:16px">
+          <div class="legend-row"><span class="th-dot" style="background:#f59e0b"></span><span>Warning – alerta vizuala pe dashboard, fara buzzer</span></div>
+          <div class="legend-row"><span class="th-dot" style="background:#ef4444"></span><span>Critic – ALERTA + buzzer automat activ</span></div>
         </div>
       </div>
 
@@ -161,9 +169,6 @@
         <div class="detail-row"><span>Presiune</span><strong id="d-pres">–</strong></div>
         <div class="detail-row"><span>Gaz/Fum</span><strong id="d-gas">–</strong></div>
         <div class="detail-row"><span>RSSI</span><strong id="d-rssi">–</strong></div>
-        <div class="detail-row"><span>Baterie</span>
-          <div class="batt-wrap"><div id="d-batt-bar" class="batt-bar"></div><strong id="d-batt">–</strong></div>
-        </div>
         <div class="detail-row"><span>Latenta</span><strong id="d-lat">–</strong></div>
         <div class="detail-row route-row"><span>Ruta</span><strong id="d-route">–</strong></div>
 

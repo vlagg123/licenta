@@ -47,12 +47,14 @@ GAS_LEVEL_LABELS: dict = {
 
 
 class GasThresholds(BaseModel):
-    normal_max:                int  = 300
-    low_max:                   int  = 450
-    medium_max:                int  = 600
-    high_max:                  int  = 750
-    critical_min:              int  = 751
-    enable_buzzer_on_gas_high: bool = False
+    normal_max:                int   = 300
+    low_max:                   int   = 450
+    medium_max:                int   = 600
+    high_max:                  int   = 750
+    critical_min:              int   = 751
+    enable_buzzer_on_gas_high: bool  = False
+    temp_warning:              float = 45.0
+    temp_critical:             float = 65.0
 
 
 class CommandType(str, Enum):

@@ -23,7 +23,7 @@ from app.database import (
     get_events, get_events_today_count, log_command,
     get_setting, set_setting,
 )
-from app.risk_engine import classify_gas_level, gas_level_color, classify_risk
+from app.risk_engine import classify_gas_level, gas_level_color, classify_status_direct
 from app.websocket_manager import manager, _serial as _ws_serial
 from app import simulator as sim
 from app.routing import get_all_routes
@@ -120,7 +120,7 @@ async def _on_packet(pkt: SensorPacket) -> None:
         final_msg    = MessageType.NORMAL
         final_prio   = Priority.NORMAL
     elif pkt.status not in (NodeStatus.MAINTENANCE, NodeStatus.OFFLINE):
-        final_status, final_msg, final_prio = classify_risk(pkt.risk_score)
+        final_status, final_msg, final_prio = classify_status_direct(pkt.gas_value, pkt.temperature, _gas_thresholds)
     else:
         final_status = pkt.status
         final_msg    = pkt.message_type
@@ -381,11 +381,13 @@ def sim_restore():
 
 
 @app.get("/api/settings/gas-thresholds", response_model=GasThresholds, tags=["Settings"])
+@app.get("/api/settings/alarm-thresholds", response_model=GasThresholds, tags=["Settings"])
 def get_gas_thresholds():
     return _gas_thresholds
 
 
 @app.post("/api/settings/gas-thresholds", response_model=GasThresholds, tags=["Settings"])
+@app.post("/api/settings/alarm-thresholds", response_model=GasThresholds, tags=["Settings"])
 async def update_gas_thresholds(thresholds: GasThresholds):
     # validare completa - toate pragurile trebuie in ordine crescatoare
     if not (thresholds.normal_max < thresholds.low_max < thresholds.medium_max

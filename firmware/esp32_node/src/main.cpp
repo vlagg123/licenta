@@ -58,16 +58,17 @@ static void updateIndicators(uint8_t status, GasLevel gasLevel) {
     switch (status) {
         case 2:
             digitalWrite(PIN_LED, HIGH);
-            if (buzzerActive) tone(PIN_BUZZER, 2000, 200);
             break;
         case 1:
             digitalWrite(PIN_LED, (millis() / 500) % 2);
-            if (buzzerActive && gasLevel >= GAS_HIGH) tone(PIN_BUZZER, 1500, 100);
             break;
         default:
             digitalWrite(PIN_LED, LOW);
-            noTone(PIN_BUZZER);
+            break;
     }
+    Serial.printf("[BUZZ] gasLvl=%d buzzerActive=%d\n", (int)gasLevel, (int)buzzerActive);
+    if (buzzerActive) digitalWrite(PIN_BUZZER, HIGH);
+    else              digitalWrite(PIN_BUZZER, LOW);
 }
 
 static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
@@ -147,13 +148,15 @@ static void sendSensorPacket(const SensorData& sd) {
 }
 
 void setup() {
+    pinMode(PIN_BUZZER, OUTPUT);
+    digitalWrite(PIN_BUZZER, LOW);
     Serial.begin(115200);
     delay(500);
     Serial.printf("\n=== FireWSN Node %d pornit ===\n", nodeId);
 
+    commands_init(PIN_LED, PIN_BUZZER);
     sensors_init();
     routing_init(nodeId);
-    commands_init(PIN_LED, PIN_BUZZER);
     comm_init(nodeId, GATEWAY_MAC);
     comm_register_receive_callback(onPacketReceived);
     comm_register_command_callback(onCommandReceived);

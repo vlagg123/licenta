@@ -169,7 +169,6 @@ function nodeCardHTML(n) {
       <span><strong>${offline ? '–' : (n.temperature != null ? n.temperature.toFixed(1) + '°C' : '–')}</strong>Temp</span>
       <span><strong style="color:${offline ? '#6b7280' : gasColor}">${offline ? '–' : (n.gas_value ?? '–')}</strong>Gaz</span>
       <span><strong>${offline ? '–' : (n.risk_score ?? '–')}</strong>Risc</span>
-      <span><strong>${offline ? '–' : (n.battery ?? '–') + '%'}</strong>Bat</span>
     </div>
     <div class="risk-bar-wrap">
       <div class="risk-bar" style="width:${riskW}%;background:${riskColor}"></div>
@@ -221,17 +220,6 @@ function updateDetailPanel(nodeId) {
 
   document.getElementById('d-rssi').textContent = offline ? '–' : (n.rssi != null ? `${n.rssi} dBm` : '–');
   document.getElementById('d-lat').textContent  = offline ? '–' : (n.latency_ms != null ? `${n.latency_ms} ms` : '–');
-
-  const bBar = document.getElementById('d-batt-bar');
-  if (offline) {
-    bBar.style.width = '0%';
-    document.getElementById('d-batt').textContent = '–';
-  } else {
-    const batt = n.battery ?? 100;
-    bBar.style.width      = `${batt}%`;
-    bBar.style.background = batt < 20 ? '#ef4444' : batt < 40 ? '#f59e0b' : '#22c55e';
-    document.getElementById('d-batt').textContent = `${batt}%`;
-  }
 
   const route = offline ? '–' : (Array.isArray(n.route) ? n.route.map(id => id === 0 ? 'GW' : `N${id}`).join(' → ') : '–');
   document.getElementById('d-route').textContent = route;
@@ -592,7 +580,8 @@ function _populateSettingsModal(t) {
   document.getElementById('th-medium-max').value    = t.medium_max;
   document.getElementById('th-high-max').value      = t.high_max;
   document.getElementById('th-critical-min').value  = t.critical_min;
-  document.getElementById('th-buzzer-high').checked = t.enable_buzzer_on_gas_high;
+  document.getElementById('th-temp-warning').value  = t.temp_warning  ?? 45;
+  document.getElementById('th-temp-critical').value = t.temp_critical ?? 65;
 }
 
 function openSettings() {
@@ -607,26 +596,32 @@ function closeSettings(evt) {
 }
 
 async function saveThresholds() {
-  const normal_max   = parseInt(document.getElementById('th-normal-max').value);
-  const low_max      = parseInt(document.getElementById('th-low-max').value);
-  const medium_max   = parseInt(document.getElementById('th-medium-max').value);
-  const high_max     = parseInt(document.getElementById('th-high-max').value);
-  const critical_min = parseInt(document.getElementById('th-critical-min').value);
-  const enable_buzzer_on_gas_high = document.getElementById('th-buzzer-high').checked;
+  const normal_max    = parseInt(document.getElementById('th-normal-max').value);
+  const low_max       = parseInt(document.getElementById('th-low-max').value);
+  const medium_max    = parseInt(document.getElementById('th-medium-max').value);
+  const high_max      = parseInt(document.getElementById('th-high-max').value);
+  const critical_min  = parseInt(document.getElementById('th-critical-min').value);
+  const temp_warning  = parseFloat(document.getElementById('th-temp-warning').value);
+  const temp_critical = parseFloat(document.getElementById('th-temp-critical').value);
 
   if (normal_max >= low_max || low_max >= medium_max || medium_max >= high_max || high_max >= critical_min) {
-    showToast('Pragurile trebuie sa fie in ordine crescatoare: normal < low < medium < high < critical!', 'alert');
+    showToast('Pragurile gaz trebuie sa fie in ordine crescatoare!', 'alert');
+    return;
+  }
+  if (temp_warning >= temp_critical) {
+    showToast('Temp Warning trebuie sa fie mai mica decat Temp Critic!', 'alert');
     return;
   }
 
   try {
     const r      = await post('/api/settings/gas-thresholds',
-                    { normal_max, low_max, medium_max, high_max, critical_min, enable_buzzer_on_gas_high });
+                    { normal_max, low_max, medium_max, high_max, critical_min,
+                      enable_buzzer_on_gas_high: false, temp_warning, temp_critical });
     const result = await r.json();
     gasThresholds = result;
-    showToast('Praguri salvate cu succes!', 'ok');
+    showToast('Setari salvate cu succes!', 'ok');
     document.getElementById('settings-overlay').classList.remove('open');
   } catch(e) {
-    showToast(`Eroare salvare praguri: ${e.message}`, 'alert');
+    showToast(`Eroare salvare setari: ${e.message}`, 'alert');
   }
 }

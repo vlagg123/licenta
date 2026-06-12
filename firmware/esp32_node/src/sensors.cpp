@@ -9,12 +9,10 @@ static bool bme_ok = false;
 
 void sensors_init() {
     Wire.begin(PIN_BME_SDA, PIN_BME_SCL);
-    bme_ok = bme.begin(BME280_ADDRESS);
+    bme_ok = bme.begin(0x76);
+    if (!bme_ok) bme_ok = bme.begin(0x77);
     if (!bme_ok) {
-        // DE MODIFICAT PENTRU PARTEA HARDWARE:
-        // daca BME280 nu e gasit in productie ar trebui sa opresti nodul sau sa trimiti
-        // un pachet de eroare catre gateway - in demo lasam fallback cu valori fixe
-        Serial.println("[SENSORS] BME280 negasit - verifica cablajul si adresa I2C");
+        Serial.println("[SENSORS] BME280 negasit la 0x76 si 0x77 - verifica cablajul");
     } else {
         bme.setSampling(
             Adafruit_BME280::MODE_NORMAL,
