@@ -190,7 +190,6 @@ function selectNode(nodeId) {
   const card = document.getElementById(`nc-${nodeId}`);
   if (card) card.classList.add('selected');
   updateDetailPanel(nodeId);
-  fetchNodeRoutes(nodeId);
   // redeseneaza imediat ca linia galbena sa apara instant, nu la urmatorul pachet WS
   drawFloorplan();
 }
