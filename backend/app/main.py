@@ -75,7 +75,9 @@ def _init_node_states() -> None:
     for nid, cfg in NODES_CONFIG.items():
         if nid == 0:
             continue
-        node_states[nid] = NodeState(node_id=nid, zone=cfg["zone"], x=cfg["x"], y=cfg["y"])
+        initial_status = NodeStatus.OFFLINE if not SIMULATION_MODE else NodeStatus.NORMAL
+        node_states[nid] = NodeState(node_id=nid, zone=cfg["zone"], x=cfg["x"], y=cfg["y"],
+                                     status=initial_status)
 
 
 async def _offline_watchdog() -> None:
@@ -293,14 +295,16 @@ async def sim_offline(node_id: int):
 async def sim_reset():
     sim.reset_all()
     for ns in node_states.values():
-        ns.status          = NodeStatus.NORMAL
         ns.message_type    = MessageType.NORMAL
         ns.priority        = Priority.NORMAL
         ns.risk_score      = 0
         ns.gas_level       = GasLevel.NORMAL
         ns.gas_level_color = "#22c55e"
         if not SIMULATION_MODE:
+            ns.status      = NodeStatus.OFFLINE
             ns.last_seen   = None
+        else:
+            ns.status      = NodeStatus.NORMAL
     _record_event(0, "SIM_RESET", "[SIM] Sistem resetat la normal", 0)
     # trimite starea completa imediat ca UI-ul sa se actualizeze fara sa astepte pachetul urmator
     await manager.broadcast({
@@ -317,12 +321,16 @@ async def sim_reset_node(node_id: int):
         raise HTTPException(404)
     sim.reset_node(node_id)
     ns = node_states[node_id]
-    ns.status          = NodeStatus.NORMAL
     ns.message_type    = MessageType.NORMAL
     ns.priority        = Priority.NORMAL
     ns.risk_score      = 0
     ns.gas_level       = GasLevel.NORMAL
     ns.gas_level_color = "#22c55e"
+    if not SIMULATION_MODE:
+        ns.status      = NodeStatus.OFFLINE
+        ns.last_seen   = None
+    else:
+        ns.status      = NodeStatus.NORMAL
     # broadcast imediat sa nu ramana date vechi in UI pana la pachetul urmator
     await manager.broadcast({
         "type":            "sensor_update",
