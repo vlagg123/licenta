@@ -5,10 +5,6 @@ import logging
 from datetime import datetime
 from typing import Callable, Optional
 
-# DE MODIFICAT PENTRU PARTEA HARDWARE:
-# SERIAL_PORT si SERIAL_BAUDRATE vin din config.py (sau din variabile de environment)
-# pe Raspberry Pi ruleaza: ls /dev/tty* inainte si dupa conectarea gateway-ului USB
-# ca sa identifici portul corect; de obicei /dev/ttyUSB0 sau /dev/ttyACM0
 from app.config import SERIAL_PORT, SERIAL_BAUDRATE
 from app.models import SensorPacket, NodeStatus, MessageType, Priority
 
@@ -23,7 +19,7 @@ except ImportError:
 
 
 def _safe_enum(cls, value, default):
-    """Intoarce default in loc sa arunce ValueError cand firmware-ul trimite o valoare neasteptata."""
+    # intoarce valoarea default in loc sa arunce exceptie pentru string-uri necunoscute
     try:
         return cls(value)
     except (ValueError, KeyError):
@@ -34,7 +30,7 @@ def _safe_enum(cls, value, default):
 def _parse_packet(raw: dict) -> Optional[SensorPacket]:
     try:
         node_id = int(raw["node_id"])
-        # route: daca lipseste sau nu e lista, construim fallback minim valid
+
         raw_route = raw.get("route")
         if isinstance(raw_route, list) and all(isinstance(x, int) for x in raw_route):
             route = raw_route
@@ -50,19 +46,14 @@ def _parse_packet(raw: dict) -> Optional[SensorPacket]:
             pressure     = float(raw.get("pressure", 1013)),
             gas_value    = int(raw.get("gas_value", 0)),
             risk_score   = int(raw.get("risk_score", 0)),
-            # enum-uri cu fallback explicit - un string necunoscut nu mai arunca tot pachetul
-            status       = _safe_enum(NodeStatus,    raw.get("status",       "NORMAL"), NodeStatus.NORMAL),
-            message_type = _safe_enum(MessageType,   raw.get("message_type", "NORMAL"), MessageType.NORMAL),
-            priority     = _safe_enum(Priority,      raw.get("priority",     "NORMAL"), Priority.NORMAL),
+            status       = _safe_enum(NodeStatus,  raw.get("status",       "NORMAL"), NodeStatus.NORMAL),
+            message_type = _safe_enum(MessageType, raw.get("message_type", "NORMAL"), MessageType.NORMAL),
+            priority     = _safe_enum(Priority,    raw.get("priority",     "NORMAL"), Priority.NORMAL),
             route        = route,
             hop_count    = int(raw.get("hop_count", 1)),
             rssi         = int(raw.get("rssi", -60)),
             battery      = int(raw.get("battery", 100)),
             latency_ms   = int(raw.get("latency_ms", 20)),
-            # DE MODIFICAT PENTRU PARTEA HARDWARE:
-            # daca gateway-ul nu are RTC/NTP, timestamp-ul din pachet e "2026-01-01T00:00:00" (fals)
-            # in acel caz backend-ul foloseste datetime.utcnow() ca fallback - suficient pt demo
-            # pentru productie: fie adaugi NTP pe gateway (WiFi), fie folosesti un modul RTC (DS3231)
             timestamp    = datetime.utcnow(),
         )
     except Exception as exc:
@@ -88,11 +79,10 @@ class SerialGateway:
                 self._writer    = writer
                 self._connected = True
                 log.info("port serial %s deschis", SERIAL_PORT)
-                await asyncio.sleep(2)  # asteapta sa treaca mesajele de boot ESP32
+                await asyncio.sleep(2)  # asteapta mesajele de boot ale ESP32
                 await self._read_loop(reader)
             except Exception as exc:
                 self._connected = False
-                # inchide writer-ul explicit la reconectare ca sa eliberam resursa seriala
                 if self._writer is not None:
                     try:
                         self._writer.close()
@@ -117,8 +107,7 @@ class SerialGateway:
             except json.JSONDecodeError:
                 log.debug("linie non-json pe serial: %s", text)
             except Exception as exc:
-                # eroare in callback nu trebuie sa inchida conexiunea seriala
-                # fara asta, orice exceptie in _on_packet ar cauza 5s de date pierdute
+                # eroarea din callback nu trebuie sa inchida conexiunea seriala
                 log.error("eroare procesare pachet serial: %s", exc, exc_info=True)
 
     async def send_command(self, command: dict) -> bool:

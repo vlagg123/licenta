@@ -11,31 +11,36 @@ static bool     inAlertMode   = false;
 static bool     forceAlert    = false;
 
 static GasThresholds gasThresholds = {
-    GAS_NORMAL_MAX, GAS_LOW_MAX, GAS_MEDIUM_MAX, GAS_HIGH_MAX,
+    GAS_NORMAL_MAX, GAS_LOW_MAX, GAS_MEDIUM_MAX, GAS_HIGH_MAX, GAS_CRITICAL_MIN,
     (bool)BUZZER_ON_GAS_HIGH
 };
 
-// ultimele 5 temperaturi pt detectia trendului
+// Istoricul ultimelor 5 temperaturi — folosit pentru detectia trendului termic
 static float tempHistory[5] = {25.0f, 25.0f, 25.0f, 25.0f, 25.0f};
-static int   histIdx = 0;
+static int   histIdx        = 0;
 
+// Scor de risc multi-factor (0-100): combina temperatura, gaz, trend, baterie si semnal
+// Nodul trimite acest scor catre gateway; statusul final e re-calculat de backend
 static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     int score = 0;
 
-    if (temp < TEMP_WARNING)      score += (int)((temp - 20.0f) / (TEMP_WARNING - 20.0f) * 10.0f);
-    else if (temp < TEMP_ALERT)   score += 10 + (int)((temp - TEMP_WARNING) / (TEMP_ALERT - TEMP_WARNING) * 15.0f);
-    else                          score += 25;
+    // componenta temperatura — proportionala pana la prag, maxima dupa
+    if (temp < TEMP_WARNING)
+        score += (int)((temp - 20.0f) / (TEMP_WARNING - 20.0f) * 10.0f);
+    else if (temp < TEMP_ALERT)
+        score += 10 + (int)((temp - TEMP_WARNING) / (TEMP_ALERT - TEMP_WARNING) * 15.0f);
+    else
+        score += 25;
     score = max(0, score);
 
-    if (gas < GAS_WARNING)        score += gas * 10 / GAS_WARNING;
-    else if (gas < GAS_ALERT)     score += 10 + (gas - GAS_WARNING) * 20 / (GAS_ALERT - GAS_WARNING);
-    else                          score += 30;
+    // componenta gaz — proportionala intre warning si alert
+    if (gas < GAS_WARNING)       score += gas * 10 / GAS_WARNING;
+    else if (gas < GAS_ALERT)    score += 10 + (gas - GAS_WARNING) * 20 / (GAS_ALERT - GAS_WARNING);
+    else                         score += 30;
 
-    // trend temperatura - daca urca mai mult de 5 grade in 5 masuratori e suspect
-    float oldest = tempHistory[(histIdx + 1) % 5];
-    float newest = tempHistory[histIdx];
-    float delta  = newest - oldest;
-    if (delta >= 10.0f)      score += 20;
+    // trend termic — crestere brusca in 5 masuratori consecutive sugereaza un incendiu
+    float delta = tempHistory[histIdx] - tempHistory[(histIdx + 1) % 5];
+    if      (delta >= 10.0f) score += 20;
     else if (delta >= 5.0f)  score += 12;
     else if (delta >= 2.0f)  score += 5;
 
@@ -46,9 +51,9 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
 }
 
 static uint8_t classifyStatus(int risk) {
-    if (risk >= RISK_ALERT)   return 2;
-    if (risk >= RISK_WARNING) return 1;
-    return 0;
+    if (risk >= RISK_ALERT)   return 2;  // ALERT
+    if (risk >= RISK_WARNING) return 1;  // WARNING
+    return 0;                            // NORMAL
 }
 
 static void updateIndicators(uint8_t status, GasLevel gasLevel) {
@@ -56,25 +61,19 @@ static void updateIndicators(uint8_t status, GasLevel gasLevel) {
                         shouldActivateBuzzer(gasLevel, gasThresholds);
 
     switch (status) {
-        case 2:
-            digitalWrite(PIN_LED, HIGH);
-            break;
-        case 1:
-            digitalWrite(PIN_LED, (millis() / 500) % 2);
-            break;
-        default:
-            digitalWrite(PIN_LED, LOW);
-            break;
+        case 2:  digitalWrite(PIN_LED, HIGH);              break;
+        case 1:  digitalWrite(PIN_LED, (millis()/500)%2); break;
+        default: digitalWrite(PIN_LED, LOW);               break;
     }
-    Serial.printf("[BUZZ] gasLvl=%d buzzerActive=%d\n", (int)gasLevel, (int)buzzerActive);
-    if (buzzerActive) digitalWrite(PIN_BUZZER, HIGH);
-    else              digitalWrite(PIN_BUZZER, LOW);
+
+    digitalWrite(PIN_BUZZER, buzzerActive ? HIGH : LOW);
 }
 
 static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
     uint8_t mac[6] = {0};
     routing_update_neighbour(pkt.sourceId, mac, rssi, pkt.battery);
 
+    // daca pachetul nu e pentru acest nod, il redirectioneaza catre destinatie
     if (pkt.sourceId != nodeId && pkt.destinationId != nodeId) {
         RouteEntry route = routing_best_next_hop(pkt.destinationId, pkt.messageType == 2);
         if (route.valid) {
@@ -90,15 +89,12 @@ static void onCommandReceived(const CommandPacket& cmd) {
     if (cmd.targetNode == nodeId || cmd.targetNode == 0xFF) {
         commands_handle(cmd);
         if (cmd.commandType == CMD_FORCE_ALERT) forceAlert = true;
-        if (cmd.commandType == CMD_RESET_ALERT)  forceAlert = false;
+        if (cmd.commandType == CMD_RESET_ALERT) forceAlert = false;
     }
 }
 
 static void sendSensorPacket(const SensorData& sd) {
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // rssi-ul real al peer-ului nu e accesibil direct fara modul promiscuu activat
-    // o alternativa e sa folosesti WiFi.RSSI() dupa un esp_wifi_sta_get_ap_info()
-    // sau sa trimiti rssi-ul primit in pachetele de la vecini si sa il stochezi in routing table
+    // RSSI-ul peer-ului ESP-NOW nu e accesibil direct fara modul promiscuu activat
     int8_t rssi = -60;
 
     histIdx = (histIdx + 1) % 5;
@@ -124,19 +120,11 @@ static void sendSensorPacket(const SensorData& sd) {
     pkt.riskScore     = (uint8_t)risk;
     pkt.hopCount      = 1;
     pkt.rssi          = rssi;
-
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // bateria e hardcodata la 85% - trebuie citita din ADC printr-un divizor de tensiune
-    // schema tipica: baterie → R1(100k) → ADC_PIN → R2(100k) → GND
-    // formula: battery_pct = (analogRead(PIN_BATT) / 4095.0f * 2.0f * 3.3f / 4.2f) * 100
-    // ajusteaza valorile R1/R2 si tensiunile dupa tipul bateriei (LiPo = 3.0V min, 4.2V max)
-    pkt.battery       = 85;
-
+    pkt.battery       = 85;  // hardcodat — citirea reala necesita divizor de tensiune pe ADC
     pkt.timestampMs   = millis();
     pkt.route[0]      = nodeId;
     pkt.routeLen      = 1;
 
-    RouteEntry bestRoute = routing_best_next_hop(0, inAlertMode);
     uint8_t nextHopMac[6];
     memcpy(nextHopMac, GATEWAY_MAC, 6);
 

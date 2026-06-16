@@ -1,13 +1,11 @@
 import os
 
+# Modul de rulare: SIMULATION=true pentru demo fara hardware, false pentru hardware real
 SIMULATION_MODE: bool = os.getenv("SIMULATION_MODE", "false").lower() == "true"
 
-# DE MODIFICAT PENTRU PARTEA HARDWARE:
-# SERIAL_PORT depinde de sistemul de operare si de portul USB folosit
-# Linux/Raspberry Pi: de obicei /dev/ttyUSB0 sau /dev/ttyACM0 (verifica cu: ls /dev/tty*)
-# macOS: /dev/cu.usbserial-XXXX sau /dev/cu.SLAB_USBtoUART
-# Windows: COM3, COM4 etc. (verifica in Device Manager)
-# SERIAL_BAUDRATE trebuie sa coincida cu SERIAL_BAUD din firmware-ul gateway-ului (config.h)
+# Portul serial al gateway-ului ESP32 conectat prin USB
+# Linux/Raspberry Pi: /dev/ttyUSB0 sau /dev/ttyACM0 (verifica cu: ls /dev/tty*)
+# macOS: /dev/cu.usbserial-XXXX
 SERIAL_PORT: str     = os.getenv("SERIAL_PORT", "/dev/ttyUSB0")
 SERIAL_BAUDRATE: int = int(os.getenv("SERIAL_BAUDRATE", "115200"))
 
@@ -18,10 +16,7 @@ DATABASE_PATH: str = os.getenv("DATABASE_PATH", "fire_detection.db")
 
 SIMULATION_INTERVAL: float = float(os.getenv("SIMULATION_INTERVAL", "3.0"))
 
-# coordonatele x,y sunt in pixeli pe canvas-ul 2D din frontend
-# DE MODIFICAT PENTRU PARTEA HARDWARE:
-# daca zona fizica e diferita de ce s-a simulat, actualizeaza si numele zonelor si
-# coordonatele x,y ca sa reflecte planul real al cladirii (vezi drawFloorplan in app.js)
+# Configuratia nodurilor: ID -> zona + coordonate (x, y) pe harta 2D din frontend
 NODES_CONFIG: dict = {
     1: {"zone": "Intrare",         "x": 90,  "y": 180},
     2: {"zone": "Depozit",         "x": 310, "y": 180},
@@ -30,11 +25,8 @@ NODES_CONFIG: dict = {
     0: {"zone": "Camera tehnica",  "x": 510, "y": 260},
 }
 
-# DE MODIFICAT PENTRU PARTEA HARDWARE:
-# NEIGHBOUR_TABLE trebuie sa reflecte topologia reala a retelei
-# valorile rssi de baza sunt estimari - masoara rssi real intre noduri dupa montare
-# si actualizeaza tuplurile (vecin_id, rssi_dBm)
-# un nod care nu apare ca vecin al altui nod nu va fi niciodata ales ca relay
+# Topologia retelei: fiecare nod stie catre cine poate trimite direct si cu ce RSSI estimat
+# Folosita de algoritmul de rutare pentru a calcula cel mai bun urmator hop
 NEIGHBOUR_TABLE: dict = {
     1: [(2, -55), (4, -68)],
     2: [(1, -55), (3, -62), (0, -50)],
@@ -61,10 +53,8 @@ GAS_LEVEL_DEFAULTS: dict = {
     "enable_buzzer_on_gas_high": False,
 }
 
-# formula cost rutare: cost = alpha*hop + beta*rssi_pen + gamma*batt_pen + delta*cong_pen
-# mod normal => prioritate baterie, mod alerta => prioritate latenta
-# DE MODIFICAT PENTRU PARTEA HARDWARE:
-# dupa testare reala poti ajusta coeficientii in functie de comportamentul observat
-# ex: daca bateria se descarca prea repede in retea, mareste gamma in mod normal
+# Coeficientii functiei de cost pentru rutare: cost = alpha*hop + beta*rssi_pen + gamma*batt_pen + delta*cong_pen
+# Mod normal — prioritizeaza durata de viata a bateriei (gamma mare)
+# Mod alerta — prioritizeaza latenta minima (alpha si beta mai mari, gamma mic)
 ROUTING_WEIGHTS_NORMAL: dict = {"alpha": 0.30, "beta": 0.20, "gamma": 0.40, "delta": 0.10}
 ROUTING_WEIGHTS_ALERT:  dict = {"alpha": 0.50, "beta": 0.40, "gamma": 0.05, "delta": 0.05}

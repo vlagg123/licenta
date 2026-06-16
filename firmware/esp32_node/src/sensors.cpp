@@ -9,8 +9,11 @@ static bool bme_ok = false;
 
 void sensors_init() {
     Wire.begin(PIN_BME_SDA, PIN_BME_SCL);
+
+    // incearca ambele adrese posibile — depinde de starea pinului SDO al modulului
     bme_ok = bme.begin(0x76);
     if (!bme_ok) bme_ok = bme.begin(0x77);
+
     if (!bme_ok) {
         Serial.println("[SENSORS] BME280 negasit la 0x76 si 0x77 - verifica cablajul");
     } else {
@@ -24,17 +27,10 @@ void sensors_init() {
         );
         Serial.println("[SENSORS] BME280 OK");
     }
-    pinMode(PIN_MQ2, INPUT);
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // rezolutia ADC 12-bit (0-4095) e standard ESP32; daca folosesti ESP32-S2/S3
-    // verifica daca au nevoie de configuratie diferita
-    analogReadResolution(12);
 
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // senzorul MQ are nevoie de timp de incalzire dupa alimentare
-    // minim 30s pentru citiri stabile, ideal 24h la prima pornire
-    // in productie ar trebui sa astepti sau sa marchezi primele citiri ca nesigure
-    Serial.println("[SENSORS] pin MQ configurat - citirile sunt stabile dupa ~30s de incalzire");
+    pinMode(PIN_MQ2, INPUT);
+    analogReadResolution(12);  // ADC 12-bit: 0-4095
+    Serial.println("[SENSORS] MQ configurat - citiri stabile dupa ~30s de incalzire");
 }
 
 SensorData sensors_read() {
@@ -44,37 +40,29 @@ SensorData sensors_read() {
     if (bme_ok) {
         d.temperature = bme.readTemperature();
         d.humidity    = bme.readHumidity();
-        d.pressure    = bme.readPressure() / 100.0f;  // Pa → hPa
+        d.pressure    = bme.readPressure() / 100.0f;  // Pa -> hPa
     } else {
-        // DE MODIFICAT PENTRU PARTEA HARDWARE:
-        // fallback cu valori fixe - in productie reala ar trebui trimis un flag de eroare
-        // ca gateway-ul sa stie ca senzorul de temperatura nu functioneaza
         d.temperature = 25.0f;
         d.humidity    = 50.0f;
         d.pressure    = 1013.0f;
     }
 
-    // media a 4 citiri ADC pentru reducere zgomot
+    // media a 4 citiri ADC consecutive pentru reducerea zgomotului electric
     int sum = 0;
     for (int i = 0; i < 4; i++) { sum += analogRead(PIN_MQ2); delay(2); }
     d.gasValue = sum / 4;
 
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // valoarea ADC bruta a MQ-2/MQ-135 depinde de tensiunea de referinta si de
-    // rezistenta de sarcina (RL) montata pe placa senzorului
-    // pentru conversie in PPM ar trebui aplicata formula din datasheet-ul senzorului
-    // momentan trimitem valoarea ADC bruta (0-4095) si comparam cu praguri empirice
-
+    // temperatura in afara domeniului valid inseamna senzor deconectat sau defect
     d.valid = (d.temperature > -40.0f && d.temperature < 125.0f);
     return d;
 }
 
 GasLevel classifyGasLevel(int gasValue, const GasThresholds& t) {
-    if (gasValue <= t.normalMax) return GAS_NORMAL;
-    if (gasValue <= t.lowMax)    return GAS_LOW;
-    if (gasValue <= t.mediumMax) return GAS_MEDIUM;
-    if (gasValue <= t.highMax)   return GAS_HIGH;
-    return GAS_CRITICAL;
+    if (gasValue >= t.criticalMin) return GAS_CRITICAL;
+    if (gasValue <= t.normalMax)   return GAS_NORMAL;
+    if (gasValue <= t.lowMax)      return GAS_LOW;
+    if (gasValue <= t.mediumMax)   return GAS_MEDIUM;
+    return GAS_HIGH;
 }
 
 bool shouldActivateBuzzer(GasLevel level, const GasThresholds& t) {

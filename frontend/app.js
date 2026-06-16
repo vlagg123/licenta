@@ -1,5 +1,6 @@
 const API_BASE = window.location.origin;
 const WS_URL   = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+
 const MAX_CHART_POINTS = 30;
 const MAX_EVENTS       = 80;
 
@@ -38,9 +39,10 @@ const NODE_COLORS = {
   OFFLINE:     '#6b7280',
   MAINTENANCE: '#8b5cf6',
 };
-const ZONE_NAMES = { 1:'Intrare', 2:'Depozit', 3:'Parcare', 4:'Tablou electric', 0:'Camera tehnica' };
 
-// dimensiunile logice ale canvas-ului, scalate pt hidpi in _initCanvas
+const ZONE_NAMES = { 1: 'Intrare', 2: 'Depozit', 3: 'Parcare', 4: 'Tablou electric', 0: 'Camera tehnica' };
+
+// Dimensiunile logice ale canvas-ului; scalate pentru ecrane HiDPI in _initCanvas
 const CANVAS_W = 620;
 const CANVAS_H = 420;
 
@@ -133,7 +135,7 @@ function handleMessage(msg) {
 
     case 'thresholds_updated':
       gasThresholds = msg.thresholds;
-      showToast('Praguri gaz actualizate', 'ok');
+      showToast('Praguri actualizate', 'ok');
       Object.values(nodes).forEach(n => updateNodeCard(n.node_id));
       break;
   }
@@ -142,7 +144,7 @@ function handleMessage(msg) {
 function renderAllNodes() {
   nodeListEl.innerHTML = '';
   Object.values(nodes)
-    .sort((a,b) => a.node_id - b.node_id)
+    .sort((a, b) => a.node_id - b.node_id)
     .forEach(n => createNodeCard(n));
 }
 
@@ -190,7 +192,6 @@ function selectNode(nodeId) {
   const card = document.getElementById(`nc-${nodeId}`);
   if (card) card.classList.add('selected');
   updateDetailPanel(nodeId);
-  // redeseneaza imediat ca linia galbena sa apara instant, nu la urmatorul pachet WS
   drawFloorplan();
 }
 
@@ -222,39 +223,6 @@ function updateDetailPanel(nodeId) {
 
   const route = offline ? '–' : (Array.isArray(n.route) ? n.route.map(id => id === 0 ? 'GW' : `N${id}`).join(' → ') : '–');
   document.getElementById('d-route').textContent = route;
-}
-
-async function fetchNodeRoutes(nodeId) {
-  try {
-    const [normal, alert] = await Promise.all([
-      fetch(`${API_BASE}/api/nodes/${nodeId}/routes?alert_mode=false`).then(r => r.json()),
-      fetch(`${API_BASE}/api/nodes/${nodeId}/routes?alert_mode=true`).then(r => r.json()),
-    ]);
-    renderRoutingInfo(nodeId, normal, alert);
-  } catch(e) { console.error('Route fetch error', e); }
-}
-
-function renderRoutingInfo(nodeId, normal, alert) {
-  const el = document.getElementById('routing-info');
-  const destNames = { 0:'Gateway', 1:'N1 Intrare', 2:'N2 Depozit', 3:'N3 Parcare', 4:'N4 Tablou' };
-  let html = `<div style="color:var(--text-muted);font-size:.7rem;margin-bottom:.5rem">Rute de la N${nodeId} (normal / alerta)</div>`;
-
-  Object.keys(normal).forEach(dest => {
-    const nr = normal[dest];
-    const ar = alert[dest];
-    const nPath = (nr.path||[]).map(id => id===0?'GW':`N${id}`).join('→');
-    const aPath = (ar.path||[]).map(id => id===0?'GW':`N${id}`).join('→');
-    html += `
-      <div class="route-entry">
-        <div style="font-size:.72rem;color:var(--text-muted)">${destNames[dest] || 'N'+dest}</div>
-        <div class="route-path">▸ Normal: ${nPath}</div>
-        <div class="route-cost">cost ${nr.cost}</div>
-        <div class="route-path" style="color:#f59e0b">▸ Alerta: ${aPath}</div>
-        <div class="route-cost">cost ${ar.cost}</div>
-      </div>`;
-  });
-
-  el.innerHTML = html;
 }
 
 async function fetchSystemStatus() {
@@ -304,9 +272,9 @@ function appendEventRow(ev) {
 function buildEventRow(ev) {
   const div  = document.createElement('div');
   const ts   = new Date(ev.timestamp);
-  const time = ts.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const time = ts.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const type = (ev.event_type || ev.status || 'INFO').toUpperCase();
-  const evClass = ['ALERT','WARNING','NORMAL','OFFLINE','COMMAND'].includes(type) ? type : 'NORMAL';
+  const evClass = ['ALERT', 'WARNING', 'NORMAL', 'OFFLINE', 'COMMAND'].includes(type) ? type : 'NORMAL';
   div.className = `event-row ev-${evClass}`;
   div.innerHTML = `
     <span class="ev-time">${time}</span>
@@ -315,7 +283,7 @@ function buildEventRow(ev) {
   return div;
 }
 
-const CHART_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7'];
+const CHART_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7'];
 
 function initChart() {
   const ctx = document.getElementById('liveChart').getContext('2d');
@@ -323,7 +291,7 @@ function initChart() {
     type: 'line',
     data: {
       labels: [],
-      datasets: [1,2,3,4].map((id, i) => ({
+      datasets: [1, 2, 3, 4].map((id, i) => ({
         label: `N${id}`,
         data: [],
         borderColor: CHART_COLORS[i],
@@ -346,7 +314,7 @@ function initChart() {
     },
   });
 
-  [1,2,3,4].forEach(id => {
+  [1, 2, 3, 4].forEach(id => {
     chartHistory.temperature[id] = [];
     chartHistory.gas[id]         = [];
     chartHistory.risk[id]        = [];
@@ -357,7 +325,7 @@ function updateChartHistory(msg) {
   const nodeId = msg.node_id;
   if (!chartHistory.temperature[nodeId]) return;
 
-  const ts = new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const ts = new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   chartHistory.temperature[nodeId].push(msg.temperature);
   chartHistory.gas[nodeId].push(msg.gas_value);
@@ -369,8 +337,7 @@ function updateChartHistory(msg) {
     chartHistory.risk[nodeId].shift();
   }
 
-  // label-ul se adauga dupa primul nod activ din sistem, nu hard-coded nodul 1
-  // daca nodul 1 e offline, nodul 2 preia etc.
+  // label-ul axei X se actualizeaza dupa primul nod activ din sistem
   const activeNodes = Object.keys(nodes).map(Number)
     .filter(id => id > 0 && nodes[id]?.status !== 'OFFLINE')
     .sort((a, b) => a - b);
@@ -384,7 +351,7 @@ function updateChartHistory(msg) {
 }
 
 function refreshChart() {
-  [1,2,3,4].forEach((id, i) => {
+  [1, 2, 3, 4].forEach((id, i) => {
     liveChart.data.datasets[i].data = [...(chartHistory[chartMode][id] || [])];
   });
   liveChart.update('none');
@@ -392,12 +359,13 @@ function refreshChart() {
 
 function switchChart(mode) {
   chartMode = mode;
-  document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', ['temperature','gas','risk'][i] === mode);
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['temperature', 'gas', 'risk'][i] === mode);
   });
   refreshChart();
 }
 
+// Pozitiile nodurilor pe harta 2D — corespund cu NODES_CONFIG din backend
 const FLOOR_NODES = {
   1: { x: 90,  y: 180, label: 'N1\nIntrare' },
   2: { x: 310, y: 180, label: 'N2\nDepozit' },
@@ -406,14 +374,14 @@ const FLOOR_NODES = {
   0: { x: 510, y: 260, label: 'GW\nCamera' },
 };
 
-const FLOOR_EDGES = [[1,2],[2,3],[3,4],[4,1],[2,0]];
+// Legaturile wireless din topologia retelei (corespund cu NEIGHBOUR_TABLE)
+const FLOOR_EDGES = [[1, 2], [2, 3], [3, 4], [4, 1], [2, 0]];
 
 function drawFloorplan() {
   const g = floorCtx;
-  // clearRect si grid in pixeli logici (CANVAS_W/H), nu in pixeli fizici (c.width/h)
-  // dupa scale(dpr,dpr) din _initCanvas, toate coordonatele sunt in spatiul logic
   g.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
+  // grid de fundal
   g.strokeStyle = '#1e2535';
   g.lineWidth = 1;
   for (let x = 0; x < CANVAS_W; x += 40) {
@@ -423,31 +391,33 @@ function drawFloorplan() {
     g.beginPath(); g.moveTo(0, y); g.lineTo(CANVAS_W, y); g.stroke();
   }
 
+  // conturul cladirii si al camerelor
   g.strokeStyle = '#2a3348'; g.lineWidth = 2;
   g.strokeRect(30, 30, 560, 360);
   g.lineWidth = 1;
-  g.strokeRect(30, 30, 200, 180);
-  g.strokeRect(230, 30, 200, 180);
-  g.strokeRect(30, 210, 200, 180);
+  g.strokeRect(30,  30,  200, 180);
+  g.strokeRect(230, 30,  200, 180);
+  g.strokeRect(30,  210, 200, 180);
   g.strokeRect(230, 210, 200, 180);
-  g.strokeRect(430, 30, 160, 360);
+  g.strokeRect(430, 30,  160, 360);
 
   g.fillStyle = '#2a3348'; g.font = '11px Segoe UI'; g.textAlign = 'left';
-  g.fillText('Intrare',         38, 50);
+  g.fillText('Intrare',         38,  50);
   g.fillText('Depozit',         238, 50);
-  g.fillText('Tablou electric', 38, 230);
+  g.fillText('Tablou electric', 38,  230);
   g.fillText('Parcare',         238, 230);
   g.fillText('Camera',          438, 50);
   g.fillText('Tehnica',         438, 65);
 
-  FLOOR_EDGES.forEach(([a,b]) => {
+  // legaturi wireless — linie intrerupta daca unul din noduri e offline
+  FLOOR_EDGES.forEach(([a, b]) => {
     const na = FLOOR_NODES[a], nb = FLOOR_NODES[b];
     const broken = (nodes[a]?.status || 'NORMAL') === 'OFFLINE' ||
                    (nodes[b]?.status || 'NORMAL') === 'OFFLINE';
     g.beginPath();
     g.moveTo(na.x, na.y); g.lineTo(nb.x, nb.y);
     if (broken) {
-      g.setLineDash([5,5]);
+      g.setLineDash([5, 5]);
       g.strokeStyle = '#374151';
     } else {
       g.setLineDash([]);
@@ -458,18 +428,19 @@ function drawFloorplan() {
     g.setLineDash([]);
   });
 
-  // ruta activa a nodului selectat
+  // ruta activa a nodului selectat — evidentiata cu galben
   const selNode = nodes[selectedNodeId];
   if (selNode && Array.isArray(selNode.route) && selNode.route.length > 1) {
     g.strokeStyle = '#f59e0b';
     g.lineWidth = 2.5;
     for (let i = 0; i < selNode.route.length - 1; i++) {
       const a = FLOOR_NODES[selNode.route[i]];
-      const b = FLOOR_NODES[selNode.route[i+1]];
+      const b = FLOOR_NODES[selNode.route[i + 1]];
       if (a && b) { g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
     }
   }
 
+  // desenarea nodurilor
   Object.entries(FLOOR_NODES).forEach(([idStr, pos]) => {
     const id     = parseInt(idStr);
     const n      = nodes[id];
@@ -480,13 +451,13 @@ function drawFloorplan() {
 
     if (status === 'ALERT') {
       g.beginPath();
-      g.arc(pos.x, pos.y, r + 8, 0, Math.PI*2);
+      g.arc(pos.x, pos.y, r + 8, 0, Math.PI * 2);
       g.fillStyle = '#ef444430';
       g.fill();
     }
 
     g.beginPath();
-    g.arc(pos.x, pos.y, r, 0, Math.PI*2);
+    g.arc(pos.x, pos.y, r, 0, Math.PI * 2);
     g.fillStyle = color + '33';
     g.fill();
     g.strokeStyle = color;
@@ -513,20 +484,6 @@ function drawFloorplan() {
   });
 }
 
-async function simOffline(nodeId) {
-  try {
-    await post(`/api/simulation/offline/${nodeId}`);
-    showToast(`N${nodeId} marcat offline`, 'warn');
-  } catch(e) { showToast(`Eroare offline N${nodeId}: ${e.message}`, 'alert'); }
-}
-
-async function simResetAll() {
-  try {
-    await post('/api/simulation/reset');
-    showToast('Sistem resetat', 'ok');
-  } catch(e) { showToast(`Eroare reset: ${e.message}`, 'alert'); }
-}
-
 async function sendCmd(cmdType) {
   if (!selectedNodeId) { showToast('Selecteaza un nod mai intai!', 'warn'); return; }
   try {
@@ -536,7 +493,7 @@ async function sendCmd(cmdType) {
       command_type: cmdType,
       payload:      {},
     });
-    // toast-ul vine prin WS event 'command_sent', nu il mai afisam si aici
+    // toast-ul de confirmare vine prin WebSocket, evenimentul 'command_sent'
   } catch(e) {
     showToast(`Eroare comanda ${cmdType}: ${e.message}`, 'alert');
   }
@@ -544,7 +501,7 @@ async function sendCmd(cmdType) {
 
 async function post(url, body = null) {
   const r = await fetch(API_BASE + url, {
-    method: 'POST',
+    method:  'POST',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body:    body ? JSON.stringify(body) : undefined,
   });
@@ -613,11 +570,11 @@ async function saveThresholds() {
   }
 
   try {
-    const r      = await post('/api/settings/gas-thresholds',
-                    { normal_max, low_max, medium_max, high_max, critical_min,
-                      enable_buzzer_on_gas_high: false, temp_warning, temp_critical });
-    const result = await r.json();
-    gasThresholds = result;
+    const r = await post('/api/settings/gas-thresholds', {
+      normal_max, low_max, medium_max, high_max, critical_min,
+      enable_buzzer_on_gas_high: false, temp_warning, temp_critical,
+    });
+    gasThresholds = await r.json();
     showToast('Setari salvate cu succes!', 'ok');
     document.getElementById('settings-overlay').classList.remove('open');
   } catch(e) {

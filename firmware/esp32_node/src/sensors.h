@@ -2,14 +2,14 @@
 #include <stdint.h>
 
 struct SensorData {
-    float temperature;  // °C
-    float humidity;     // %
+    float temperature;  // grade Celsius
+    float humidity;     // procent relativ
     float pressure;     // hPa
-    int   gasValue;     // ADC raw 0-4095
+    int   gasValue;     // valoare ADC bruta 0-4095
     bool  valid;
 };
 
-// ── Gas Level (5-level classification) ───────────────────────────────────
+// Clasificare in 5 niveluri, aliniata cu backend-ul Python
 enum GasLevel : uint8_t {
     GAS_NORMAL   = 0,
     GAS_LOW      = 1,
@@ -19,18 +19,15 @@ enum GasLevel : uint8_t {
 };
 
 struct GasThresholds {
-    int normalMax;
-    int lowMax;
-    int mediumMax;
-    int highMax;
+    int  normalMax;
+    int  lowMax;
+    int  mediumMax;
+    int  highMax;
+    int  criticalMin;
     bool buzzerOnHigh;
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // adauga campul criticalMin si actualizeaza classifyGasLevel() din sensors.cpp
-    // ca sa foloseasca explicit pragul, la fel cum face backend-ul Python
-    // momentan CRITICAL = tot ce e > highMax (echivalent cu criticalMin = highMax + 1)
 };
 
-void     sensors_init();
+void       sensors_init();
 SensorData sensors_read();
-GasLevel classifyGasLevel(int gasValue, const GasThresholds& t);
-bool     shouldActivateBuzzer(GasLevel level, const GasThresholds& t);
+GasLevel   classifyGasLevel(int gasValue, const GasThresholds& t);
+bool       shouldActivateBuzzer(GasLevel level, const GasThresholds& t);
