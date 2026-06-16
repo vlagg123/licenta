@@ -4,10 +4,10 @@
 
 #define MAX_HOPS 4
 
-// ── ESP-NOW packet structure ───────────────────────────────────────────────
-// Sent by sensor nodes to gateway (or next hop).
+// ── structura pachetului ESP-NOW ───────────────────────────────────────────
+// trimis de nodurile senzoriale catre gateway (sau urmatorul hop)
 struct SensorPacket {
-    char    packetId[9];     // 8-char hex + null
+    char    packetId[9];     // ID hex pe 8 caractere + terminator null
     uint8_t sourceId;
     uint8_t destinationId;   // 0 = gateway
     uint8_t messageType;     // 0=NORMAL 1=WARNING 2=ALERT
@@ -21,16 +21,16 @@ struct SensorPacket {
     int8_t  rssi;
     uint8_t battery;
     uint32_t timestampMs;
-    uint8_t  route[MAX_HOPS];  // node IDs along the path, 0 = gateway / end
+    uint8_t  route[MAX_HOPS];  // ID-urile nodurilor de pe traseul pachetului, 0 = gateway
     uint8_t  routeLen;
 };
 
-// ── Command packet (gateway → node) ────────────────────────────────────────
+// ── pachet de comanda (gateway → nod) ─────────────────────────────────────
 struct CommandPacket {
     char    commandId[9];
     uint8_t targetNode;
-    uint8_t commandType;   // see CommandType enum in commands.h
-    float   param1;        // generic float parameter
+    uint8_t commandType;   // valorile sunt definite in enum-ul CommandType din commands.h
+    float   param1;        // parametru generic de tip float
     float   param2;
 };
 

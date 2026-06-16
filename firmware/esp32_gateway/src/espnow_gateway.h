@@ -1,23 +1,23 @@
 #pragma once
 #include <stdint.h>
 
-// Reuse the same packet struct from node firmware
+// aceeasi structura de pachet ca in firmware-ul nodurilor senzoriale
 #define MAX_HOPS 4
 
 struct SensorPacket {
-    char    packetId[9];
-    uint8_t sourceId;
-    uint8_t destinationId;
-    uint8_t messageType;
-    uint8_t priority;
-    float   temperature;
-    float   humidity;
-    float   pressure;
-    int16_t gasValue;
-    uint8_t riskScore;
-    uint8_t hopCount;
-    int8_t  rssi;
-    uint8_t battery;
+    char     packetId[9];    // ID hex pe 8 caractere + terminator
+    uint8_t  sourceId;       // ID-ul nodului sursa
+    uint8_t  destinationId;  // 0 = gateway
+    uint8_t  messageType;    // 0=NORMAL 1=WARNING 2=ALERT
+    uint8_t  priority;       // 0=LOW 1=NORMAL 2=HIGH
+    float    temperature;
+    float    humidity;
+    float    pressure;
+    int16_t  gasValue;
+    uint8_t  riskScore;
+    uint8_t  hopCount;
+    int8_t   rssi;
+    uint8_t  battery;
     uint32_t timestampMs;
     uint8_t  route[MAX_HOPS];
     uint8_t  routeLen;

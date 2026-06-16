@@ -4,17 +4,17 @@
 #define MAX_NODES    5
 #define MAX_HOPS     4
 
-// Neighbour table entry
+// intrare in tabela de vecini
 struct NeighbourEntry {
     uint8_t  nodeId;
     uint8_t  mac[6];
-    int8_t   rssi;          // last known RSSI (dBm)
-    uint8_t  battery;       // last known battery %
-    uint32_t lastSeenMs;    // millis() of last received packet
+    int8_t   rssi;          // RSSI-ul ultimului pachet primit (dBm)
+    uint8_t  battery;       // nivelul bateriei la ultima receptie (%)
+    uint32_t lastSeenMs;    // momentul ultimului pachet primit (millis)
     bool     alive;
 };
 
-// Routing table entry: best next-hop towards a destination
+// intrare in tabela de rutare: cel mai bun next-hop catre o destinatie
 struct RouteEntry {
     uint8_t  destination;
     uint8_t  nextHop;
