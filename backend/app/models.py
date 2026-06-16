@@ -58,12 +58,11 @@ class GasThresholds(BaseModel):
 
 
 class CommandType(str, Enum):
-    MUTE_BUZZER           = "MUTE_BUZZER"
-    RESET_ALERT           = "RESET_ALERT"
-    TEST_ALARM            = "TEST_ALARM"
-    SET_THRESHOLDS        = "SET_THRESHOLDS"
-    SET_MAINTENANCE_MODE  = "SET_MAINTENANCE_MODE"
-    FORCE_SIMULATED_ALERT = "FORCE_SIMULATED_ALERT"
+    MUTE_BUZZER          = "MUTE_BUZZER"
+    RESET_ALERT          = "RESET_ALERT"
+    TEST_ALARM           = "TEST_ALARM"
+    SET_THRESHOLDS       = "SET_THRESHOLDS"
+    SET_MAINTENANCE_MODE = "SET_MAINTENANCE_MODE"
 
 
 class SensorPacket(BaseModel):

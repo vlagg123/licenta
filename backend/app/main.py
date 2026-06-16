@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.config import SIMULATION_MODE, NODES_CONFIG, HOST, PORT, GAS_LEVEL_DEFAULTS
+from app.config import SIMULATION_MODE, NODES_CONFIG, HOST, PORT
 from app.models import (
     NodeState, NodeStatus, MessageType, Priority, SensorPacket, Event,
     NodeCommand, CommandResponse, CommandType, SystemStatus,
@@ -26,7 +26,7 @@ from app.database import (
 from app.risk_engine import classify_gas_level, gas_level_color, classify_status_direct
 from app.websocket_manager import manager, _serial as _ws_serial
 from app import simulator as sim
-from app.routing import get_all_routes
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("main")
@@ -219,13 +219,6 @@ def get_node(node_id: int):
     return ns.dict()
 
 
-@app.get("/api/nodes/{node_id}/routes", tags=["Routing"])
-def get_node_routes(node_id: int, alert_mode: bool = False):
-    if node_id not in node_states:
-        raise HTTPException(404)
-    return get_all_routes(node_id, node_states, alert_mode)
-
-
 @app.get("/api/events", tags=["Events"])
 def get_events_endpoint(limit: int = Query(100, ge=1, le=1000), node_id: Optional[int] = Query(None)):
     return get_events(limit=limit, node_id=node_id)
@@ -243,10 +236,7 @@ async def send_command(cmd: NodeCommand):
     if SIMULATION_MODE:
         if cmd.command_type == CommandType.RESET_ALERT:
             sim.reset_node(cmd.target_node)
-        elif cmd.command_type == CommandType.FORCE_SIMULATED_ALERT:
-            sim.trigger_alert(cmd.target_node)
         elif cmd.command_type == CommandType.SET_MAINTENANCE_MODE:
-            # mentenanta nu e acelasi lucru cu offline - nodul ramane activ dar fara alarme
             sim.set_maintenance(cmd.target_node)
     else:
         if _serial_gw:
@@ -274,114 +264,6 @@ async def send_command(cmd: NodeCommand):
     await manager.broadcast({"type": "command_sent", "command_id": cmd.command_id,
                               "target_node": cmd.target_node, "command_type": cmd.command_type})
     return CommandResponse(success=True, message="Comanda trimisa", command_id=cmd.command_id)
-
-
-@app.post("/api/simulation/alert/{node_id}", tags=["Simulation"])
-async def sim_alert(node_id: int):
-    if node_id not in node_states:
-        raise HTTPException(404)
-    sim.trigger_alert(node_id)
-    _record_event(node_id, "SIM_ALERT", f"[SIM] Alerta fortata pe nod {node_id}", 85)
-    return {"ok": True, "node_id": node_id, "action": "ALERT"}
-
-
-@app.post("/api/simulation/offline/{node_id}", tags=["Simulation"])
-async def sim_offline(node_id: int):
-    if node_id not in node_states:
-        raise HTTPException(404)
-    sim.trigger_offline(node_id)
-    ns = node_states[node_id]
-    ns.status = NodeStatus.OFFLINE
-    _record_event(node_id, "OFFLINE", f"[SIM] Nod {node_id} fortat offline", 0)
-    await manager.broadcast({"type": "node_offline", "node_id": node_id})
-    return {"ok": True, "node_id": node_id, "action": "OFFLINE"}
-
-
-@app.post("/api/simulation/reset", tags=["Simulation"])
-async def sim_reset():
-    sim.reset_all()
-    for ns in node_states.values():
-        ns.message_type    = MessageType.NORMAL
-        ns.priority        = Priority.NORMAL
-        ns.risk_score      = 0
-        ns.gas_level       = GasLevel.NORMAL
-        ns.gas_level_color = "#22c55e"
-        if not SIMULATION_MODE:
-            ns.status      = NodeStatus.OFFLINE
-            ns.last_seen   = None
-        else:
-            ns.status      = NodeStatus.NORMAL
-    _record_event(0, "SIM_RESET", "[SIM] Sistem resetat la normal", 0)
-    # trimite starea completa imediat ca UI-ul sa se actualizeze fara sa astepte pachetul urmator
-    await manager.broadcast({
-        "type":  "initial_state",
-        "nodes": [ns.dict() for ns in node_states.values()],
-        "mode":  "SIMULATION" if SIMULATION_MODE else "HARDWARE",
-    })
-    return {"ok": True}
-
-
-@app.post("/api/simulation/reset/{node_id}", tags=["Simulation"])
-async def sim_reset_node(node_id: int):
-    if node_id not in node_states:
-        raise HTTPException(404)
-    sim.reset_node(node_id)
-    ns = node_states[node_id]
-    ns.message_type    = MessageType.NORMAL
-    ns.priority        = Priority.NORMAL
-    ns.risk_score      = 0
-    ns.gas_level       = GasLevel.NORMAL
-    ns.gas_level_color = "#22c55e"
-    if not SIMULATION_MODE:
-        ns.status      = NodeStatus.OFFLINE
-        ns.last_seen   = None
-    else:
-        ns.status      = NodeStatus.NORMAL
-    # broadcast imediat sa nu ramana date vechi in UI pana la pachetul urmator
-    await manager.broadcast({
-        "type":            "sensor_update",
-        "node_id":         node_id,
-        "zone":            ns.zone,
-        "temperature":     ns.temperature,
-        "humidity":        ns.humidity,
-        "pressure":        ns.pressure,
-        "gas_value":       ns.gas_value,
-        "gas_level":       ns.gas_level,
-        "gas_level_color": ns.gas_level_color,
-        "risk_score":      ns.risk_score,
-        "status":          ns.status,
-        "message_type":    ns.message_type,
-        "priority":        ns.priority,
-        "route":           ns.route,
-        "hop_count":       ns.hop_count,
-        "rssi":            ns.rssi,
-        "battery":         ns.battery,
-        "latency_ms":      ns.latency_ms,
-        "timestamp":       ns.last_seen or datetime.utcnow(),
-        "buzzer_on_high":  _gas_thresholds.enable_buzzer_on_gas_high,
-    })
-    return {"ok": True, "node_id": node_id}
-
-
-@app.post("/api/simulation/route-failure", tags=["Simulation"])
-async def sim_route_failure(node_id: int = Query(...)):
-    if node_id not in node_states:
-        raise HTTPException(404)
-    sim.set_route_failure(node_id)
-    _record_event(node_id, "ROUTE_FAILURE", f"[SIM] Ruta primara cazuta la nod {node_id}", 20)
-    return {"ok": True, "node_id": node_id}
-
-
-@app.post("/api/simulation/packet-loss", tags=["Simulation"])
-def sim_packet_loss(pct: float = Query(0.3, ge=0.0, le=1.0)):
-    sim.set_packet_loss(pct)
-    return {"ok": True, "packet_loss_pct": pct}
-
-
-@app.post("/api/simulation/restore", tags=["Simulation"])
-def sim_restore():
-    sim.restore_connection()
-    return {"ok": True}
 
 
 @app.get("/api/settings/gas-thresholds", response_model=GasThresholds, tags=["Settings"])

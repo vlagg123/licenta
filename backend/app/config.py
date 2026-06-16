@@ -38,19 +38,7 @@ NEIGHBOUR_TABLE: dict = {
 THRESHOLDS: dict = {
     "temperature_warning": 45.0,
     "temperature_alert":   65.0,
-    "gas_warning":         400,
-    "gas_alert":           700,
-    "battery_low":         20,
     "offline_timeout_s":   30,
-}
-
-GAS_LEVEL_DEFAULTS: dict = {
-    "normal_max":                300,
-    "low_max":                   450,
-    "medium_max":                600,
-    "high_max":                  750,
-    "critical_min":              751,
-    "enable_buzzer_on_gas_high": False,
 }
 
 # Coeficientii functiei de cost pentru rutare: cost = alpha*hop + beta*rssi_pen + gamma*batt_pen + delta*cong_pen
