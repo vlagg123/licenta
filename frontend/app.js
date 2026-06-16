@@ -100,7 +100,6 @@ function connectWebSocket() {
 function handleMessage(msg) {
   switch (msg.type) {
     case 'initial_state':
-      document.getElementById('mode-label').textContent = msg.mode === 'SIMULATION' ? 'SIM' : 'HW';
       msg.nodes.forEach(n => { nodes[n.node_id] = n; });
       renderAllNodes();
       drawFloorplan();
@@ -232,7 +231,6 @@ async function fetchSystemStatus() {
     document.getElementById('stat-alert').textContent  = s.alert_nodes;
     document.getElementById('stat-warn').textContent   = s.warning_nodes;
     document.getElementById('stat-events').textContent = s.events_today;
-    document.getElementById('mode-label').textContent  = s.mode === 'SIMULATION' ? 'SIM' : 'HW';
     updateSystemBadge();
   } catch(e) {}
 }

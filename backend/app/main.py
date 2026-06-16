@@ -3,20 +3,20 @@ import asyncio
 import json
 import logging
 import time
+import os
 from datetime import datetime
 from typing import Optional
-import os
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.config import SIMULATION_MODE, NODES_CONFIG, HOST, PORT
+from app.config import NODES_CONFIG, HOST, PORT
 from app.models import (
     NodeState, NodeStatus, MessageType, Priority, SensorPacket, Event,
     NodeCommand, CommandResponse, CommandType, SystemStatus,
-    GasThresholds, GasLevel, GAS_LEVEL_COLORS,
+    GasThresholds, GasLevel,
 )
 from app.database import (
     init_db, insert_event, insert_sensor_snapshot,
@@ -25,20 +25,18 @@ from app.database import (
 )
 from app.risk_engine import classify_gas_level, gas_level_color, classify_status_direct
 from app.websocket_manager import manager, _serial as _ws_serial
-from app import simulator as sim
-
+from app.serial_gateway import SerialGateway
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("main")
 
 app = FastAPI(title="Fire Detection WSN", version="1.0.0")
-
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 node_states: dict[int, NodeState] = {}
 _gas_thresholds: GasThresholds    = GasThresholds()
 _start_time = time.time()
-_serial_gw  = None
+_serial_gw: SerialGateway | None  = None
 
 
 @app.on_event("startup")
@@ -47,18 +45,11 @@ async def startup() -> None:
     _load_gas_thresholds()
     _init_node_states()
 
-    if SIMULATION_MODE:
-        log.info("mod simulare pornit")
-        sim.set_gas_thresholds(_gas_thresholds)
-        asyncio.create_task(sim.simulation_loop(node_states, _on_packet))
-    else:
-        log.info("mod hardware pornit pe portul serial")
-        from app.serial_gateway import SerialGateway
-        global _serial_gw
-        _serial_gw = SerialGateway(packet_callback=_on_packet)
-        asyncio.create_task(_serial_gw.run())
-
+    global _serial_gw
+    _serial_gw = SerialGateway(packet_callback=_on_packet)
+    asyncio.create_task(_serial_gw.run())
     asyncio.create_task(_offline_watchdog())
+    log.info("server pornit in mod hardware")
 
 
 def _load_gas_thresholds() -> None:
@@ -75,9 +66,10 @@ def _init_node_states() -> None:
     for nid, cfg in NODES_CONFIG.items():
         if nid == 0:
             continue
-        initial_status = NodeStatus.OFFLINE if not SIMULATION_MODE else NodeStatus.NORMAL
-        node_states[nid] = NodeState(node_id=nid, zone=cfg["zone"], x=cfg["x"], y=cfg["y"],
-                                     status=initial_status)
+        node_states[nid] = NodeState(
+            node_id=nid, zone=cfg["zone"], x=cfg["x"], y=cfg["y"],
+            status=NodeStatus.OFFLINE,
+        )
 
 
 async def _offline_watchdog() -> None:
@@ -90,7 +82,6 @@ async def _offline_watchdog() -> None:
             for nid, ns in list(node_states.items()):
                 if ns.last_seen is None:
                     continue
-                # nodurile in mentenanta nu sunt marcate offline
                 if ns.status == NodeStatus.MAINTENANCE:
                     continue
                 delta = (now - ns.last_seen).total_seconds()
@@ -107,26 +98,22 @@ async def _on_packet(pkt: SensorPacket) -> None:
     if not ns:
         return
 
-    prev_status   = ns.status
+    prev_status    = ns.status
     prev_gas_level = ns.gas_level
     glevel = classify_gas_level(pkt.gas_value, _gas_thresholds)
     gcolor = gas_level_color(glevel)
 
-    # daca backend-ul a marcat nodul in mentenanta (comanda SET_MAINTENANCE_MODE),
-    # pastreaza MAINTENANCE indiferent de ce trimite hardware-ul pana la RESET_ALERT explicit
-    # necesar in hardware mode unde firmware-ul nu trimite niciodata status=MAINTENANCE
+    # daca nodul e in mentenanta, pastreaza statusul pana la RESET_ALERT explicit
+    # firmware-ul nu trimite niciodata status=MAINTENANCE, asa ca backend-ul il tine manual
     if prev_status == NodeStatus.MAINTENANCE:
         final_status = NodeStatus.MAINTENANCE
         final_msg    = MessageType.NORMAL
         final_prio   = Priority.NORMAL
-    elif pkt.status not in (NodeStatus.MAINTENANCE, NodeStatus.OFFLINE):
-        final_status, final_msg, final_prio = classify_status_direct(pkt.gas_value, pkt.temperature, _gas_thresholds)
     else:
-        final_status = pkt.status
-        final_msg    = pkt.message_type
-        final_prio   = pkt.priority
+        final_status, final_msg, final_prio = classify_status_direct(
+            pkt.gas_value, pkt.temperature, _gas_thresholds
+        )
 
-    # actualizare stare in memorie - intotdeauna, indiferent de DB
     ns.temperature     = pkt.temperature
     ns.humidity        = pkt.humidity
     ns.pressure        = pkt.pressure
@@ -145,10 +132,9 @@ async def _on_packet(pkt: SensorPacket) -> None:
     ns.last_seen       = pkt.timestamp
     ns.packet_count   += 1
 
-    # scriere DB separata de broadcast - o eroare DB nu blocheaza UI-ul
+    # scrierile in DB sunt separate de broadcast — o eroare DB nu blocheaza UI-ul
     try:
-        if (glevel == GasLevel.CRITICAL and prev_gas_level != GasLevel.CRITICAL
-                and pkt.status != NodeStatus.MAINTENANCE):
+        if glevel == GasLevel.CRITICAL and prev_gas_level != GasLevel.CRITICAL:
             _record_event(pkt.node_id, "GAS_CRITICAL",
                           f"Nod {pkt.node_id} ({ns.zone}): gaz critic - {pkt.gas_value} ADC",
                           pkt.risk_score)
@@ -157,10 +143,10 @@ async def _on_packet(pkt: SensorPacket) -> None:
                                    pkt.pressure, pkt.gas_value, pkt.risk_score,
                                    final_status, pkt.timestamp)
         if final_status != prev_status:
-            ps = prev_status.value  if hasattr(prev_status,  'value') else prev_status
-            fs = final_status.value if hasattr(final_status, 'value') else final_status
+            ps = prev_status.value  if hasattr(prev_status,  "value") else prev_status
+            fs = final_status.value if hasattr(final_status, "value") else final_status
             _record_event(pkt.node_id, final_status,
-                          f"Nod {pkt.node_id} ({ns.zone}): {ps} -> {fs} | risc={pkt.risk_score} | t={pkt.temperature}C gaz={pkt.gas_value}",
+                          f"Nod {pkt.node_id} ({ns.zone}): {ps} -> {fs} | t={pkt.temperature}C gaz={pkt.gas_value}",
                           pkt.risk_score)
     except Exception as exc:
         log.error("eroare DB on_packet nod %s: %s", pkt.node_id, exc)
@@ -191,7 +177,6 @@ async def _on_packet(pkt: SensorPacket) -> None:
 
 def _record_event(node_id: int, event_type: str, description: str, risk_score: int) -> None:
     ns   = node_states.get(node_id)
-    # node_id=0 e gateway-ul, nu e in node_states
     zone = ns.zone if ns else ("Gateway" if node_id == 0 else "Unknown")
     ev   = Event(node_id=node_id, zone=zone, event_type=event_type,
                  description=description, risk_score=risk_score, timestamp=datetime.utcnow())
@@ -226,43 +211,45 @@ def get_events_endpoint(limit: int = Query(100, ge=1, le=1000), node_id: Optiona
 
 @app.post("/api/commands", response_model=CommandResponse, tags=["Commands"])
 async def send_command(cmd: NodeCommand):
-    ns_check = node_states.get(cmd.target_node)
-    if ns_check and ns_check.status == NodeStatus.OFFLINE:
+    ns = node_states.get(cmd.target_node)
+    if ns and ns.status == NodeStatus.OFFLINE:
         raise HTTPException(400, f"Nodul {cmd.target_node} este offline - comanda ignorata")
 
     log_command(cmd.command_id, cmd.target_node, cmd.command_type, cmd.payload, cmd.timestamp)
     _record_event(cmd.target_node, "COMMAND", f"Comanda {cmd.command_type} -> nod {cmd.target_node}", 0)
 
-    if SIMULATION_MODE:
-        if cmd.command_type == CommandType.RESET_ALERT:
-            sim.reset_node(cmd.target_node)
-        elif cmd.command_type == CommandType.SET_MAINTENANCE_MODE:
-            sim.set_maintenance(cmd.target_node)
-    else:
-        if _serial_gw:
-            sent = await _serial_gw.send_command({
-                "type": "command", "command_id": cmd.command_id,
-                "target_node": cmd.target_node, "command_type": cmd.command_type,
-                "payload": cmd.payload, "timestamp": cmd.timestamp.isoformat(),
-            })
-            if not sent:
-                raise HTTPException(503, "gateway serial deconectat - comanda nu a fost trimisa la nod")
-            # reflecta imediat in starea backend comenzile care schimba statusul nodului,
-            # fara sa asteptam urmatorul pachet serial (care poate veni cu delay)
-            ns_hw = node_states.get(cmd.target_node)
-            if ns_hw:
-                if cmd.command_type == CommandType.SET_MAINTENANCE_MODE:
-                    ns_hw.status       = NodeStatus.MAINTENANCE
-                    ns_hw.message_type = MessageType.NORMAL
-                    ns_hw.priority     = Priority.NORMAL
-                elif cmd.command_type == CommandType.RESET_ALERT:
-                    # iese din mentenanta si din orice alerta, urmatorul pachet confirma starea reala
-                    ns_hw.status       = NodeStatus.NORMAL
-                    ns_hw.message_type = MessageType.NORMAL
-                    ns_hw.priority     = Priority.NORMAL
+    if not _serial_gw:
+        raise HTTPException(503, "gateway serial neinitializat")
 
-    await manager.broadcast({"type": "command_sent", "command_id": cmd.command_id,
-                              "target_node": cmd.target_node, "command_type": cmd.command_type})
+    sent = await _serial_gw.send_command({
+        "type":         "command",
+        "command_id":   cmd.command_id,
+        "target_node":  cmd.target_node,
+        "command_type": cmd.command_type,
+        "payload":      cmd.payload,
+        "timestamp":    cmd.timestamp.isoformat(),
+    })
+    if not sent:
+        raise HTTPException(503, "gateway serial deconectat - comanda nu a fost trimisa la nod")
+
+    # reflecta imediat comenzile de stare in backend,
+    # fara sa asteptam urmatorul pachet serial
+    if ns:
+        if cmd.command_type == CommandType.SET_MAINTENANCE_MODE:
+            ns.status       = NodeStatus.MAINTENANCE
+            ns.message_type = MessageType.NORMAL
+            ns.priority     = Priority.NORMAL
+        elif cmd.command_type == CommandType.RESET_ALERT:
+            ns.status       = NodeStatus.NORMAL
+            ns.message_type = MessageType.NORMAL
+            ns.priority     = Priority.NORMAL
+
+    await manager.broadcast({
+        "type":         "command_sent",
+        "command_id":   cmd.command_id,
+        "target_node":  cmd.target_node,
+        "command_type": cmd.command_type,
+    })
     return CommandResponse(success=True, message="Comanda trimisa", command_id=cmd.command_id)
 
 
@@ -275,7 +262,6 @@ def get_gas_thresholds():
 @app.post("/api/settings/gas-thresholds", response_model=GasThresholds, tags=["Settings"])
 @app.post("/api/settings/alarm-thresholds", response_model=GasThresholds, tags=["Settings"])
 async def update_gas_thresholds(thresholds: GasThresholds):
-    # validare completa - toate pragurile trebuie in ordine crescatoare
     if not (thresholds.normal_max < thresholds.low_max < thresholds.medium_max
             < thresholds.high_max < thresholds.critical_min):
         raise HTTPException(400, "pragurile trebuie sa fie in ordine: normal < low < medium < high < critical")
@@ -283,11 +269,6 @@ async def update_gas_thresholds(thresholds: GasThresholds):
     global _gas_thresholds
     _gas_thresholds = thresholds
     set_setting("gas_thresholds", json.dumps(thresholds.dict()))
-
-    # actualizeaza si simulatorul ca sa foloseasca noile praguri la calcul risc
-    if SIMULATION_MODE:
-        sim.set_gas_thresholds(_gas_thresholds)
-
     await manager.broadcast({"type": "thresholds_updated", "thresholds": thresholds.dict()})
     return _gas_thresholds
 
@@ -296,7 +277,7 @@ async def update_gas_thresholds(thresholds: GasThresholds):
 def system_status():
     statuses = [ns.status for ns in node_states.values()]
     return SystemStatus(
-        mode          = "SIMULATION" if SIMULATION_MODE else "HARDWARE",
+        mode          = "HARDWARE",
         total_nodes   = len(node_states),
         online_nodes  = sum(1 for s in statuses if s != NodeStatus.OFFLINE),
         alert_nodes   = sum(1 for s in statuses if s == NodeStatus.ALERT),
@@ -313,15 +294,13 @@ async def websocket_endpoint(ws: WebSocket):
         initial = {
             "type":  "initial_state",
             "nodes": [ns.dict() for ns in node_states.values()],
-            "mode":  "SIMULATION" if SIMULATION_MODE else "HARDWARE",
+            "mode":  "HARDWARE",
         }
         await ws.send_text(json.dumps(initial, default=_ws_serial))
         while True:
             await ws.receive_text()
     except Exception:
-        # prinde si WebSocketDisconnect si orice alta exceptie de retea
-        # fara asta, socket-ul mort ramane in active si toate broadcast-urile
-        # incearca sa trimita la el pana la primul esec
+        # prinde WebSocketDisconnect si orice alta exceptie de retea
         manager.disconnect(ws)
 
 
