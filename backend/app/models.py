@@ -37,14 +37,6 @@ GAS_LEVEL_COLORS: dict = {
     "GAS_CRITICAL": "#ef4444",
 }
 
-GAS_LEVEL_LABELS: dict = {
-    "GAS_NORMAL":   "Normal",
-    "GAS_LOW":      "Scazut",
-    "GAS_MEDIUM":   "Mediu",
-    "GAS_HIGH":     "Ridicat",
-    "GAS_CRITICAL": "Critic",
-}
-
 
 class GasThresholds(BaseModel):
     normal_max:                int   = 300

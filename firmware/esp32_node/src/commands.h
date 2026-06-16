@@ -7,7 +7,6 @@ enum CommandType : uint8_t {
     CMD_TEST_ALARM           = 3,
     CMD_SET_THRESHOLDS       = 5,
     CMD_SET_MAINTENANCE_MODE = 6,
-    CMD_FORCE_ALERT          = 8,
 };
 
 void commands_init(uint8_t ledPin, uint8_t buzzerPin);

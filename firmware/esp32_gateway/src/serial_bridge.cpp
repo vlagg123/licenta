@@ -74,7 +74,6 @@ void serial_bridge_poll(const uint8_t nodeMacs[][6], int nodeCount) {
     else if (strcmp(ct, "TEST_ALARM")           == 0) cmd.commandType = 3;
     else if (strcmp(ct, "SET_THRESHOLDS")       == 0) cmd.commandType = 5;
     else if (strcmp(ct, "SET_MAINTENANCE_MODE") == 0) cmd.commandType = 6;
-    else if (strcmp(ct, "FORCE_SIMULATED_ALERT")== 0) cmd.commandType = 8;
 
     uint8_t target = cmd.targetNode;
     if (target > 0 && target < (uint8_t)nodeCount) {

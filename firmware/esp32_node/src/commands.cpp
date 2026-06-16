@@ -72,10 +72,6 @@ void commands_handle(const CommandPacket& cmd) {
             Serial.printf("[CMD] mentenanta: %s\n", _maintenance ? "ON" : "OFF");
             break;
 
-        case CMD_FORCE_ALERT:
-            Serial.println("[CMD] alerta fortata");
-            break;
-
         default:
             Serial.printf("[CMD] comanda necunoscuta: %d\n", cmd.commandType);
     }

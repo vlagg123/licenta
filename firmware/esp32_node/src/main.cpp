@@ -8,7 +8,6 @@
 static uint8_t  nodeId        = NODE_ID;
 static uint32_t packetCounter = 0;
 static bool     inAlertMode   = false;
-static bool     forceAlert    = false;
 
 static GasThresholds gasThresholds = {
     GAS_NORMAL_MAX, GAS_LOW_MAX, GAS_MEDIUM_MAX, GAS_HIGH_MAX, GAS_CRITICAL_MIN,
@@ -57,6 +56,13 @@ static uint8_t classifyStatus(int risk) {
 }
 
 static void updateIndicators(uint8_t status, GasLevel gasLevel) {
+    // in mentenanta nodul nu mai semnalizeaza fizic — LED si buzzer raman stinse
+    if (commands_is_maintenance()) {
+        digitalWrite(PIN_LED, LOW);
+        digitalWrite(PIN_BUZZER, LOW);
+        return;
+    }
+
     bool buzzerActive = !commands_is_muted() &&
                         shouldActivateBuzzer(gasLevel, gasThresholds);
 
@@ -88,8 +94,6 @@ static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
 static void onCommandReceived(const CommandPacket& cmd) {
     if (cmd.targetNode == nodeId || cmd.targetNode == 0xFF) {
         commands_handle(cmd);
-        if (cmd.commandType == CMD_FORCE_ALERT) forceAlert = true;
-        if (cmd.commandType == CMD_RESET_ALERT) forceAlert = false;
     }
 }
 
@@ -102,7 +106,6 @@ static void sendSensorPacket(const SensorData& sd) {
 
     GasLevel gasLevel = classifyGasLevel(sd.gasValue, gasThresholds);
     int risk = computeRiskScore(sd.temperature, sd.gasValue, 85, rssi);
-    if (forceAlert) risk = max(risk, 75);
 
     uint8_t status = classifyStatus(risk);
     inAlertMode = (status == 2);

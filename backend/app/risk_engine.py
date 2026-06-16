@@ -1,5 +1,4 @@
 from __future__ import annotations
-from app.config import THRESHOLDS
 from app.models import NodeStatus, MessageType, Priority, GasLevel, GAS_LEVEL_COLORS, GasThresholds
 
 
@@ -19,68 +18,9 @@ def gas_level_color(level: GasLevel) -> str:
     return GAS_LEVEL_COLORS.get(level.value, "#22c55e")
 
 
-def _temperature_score(temp: float) -> int:
-    t_warn  = THRESHOLDS["temperature_warning"]
-    t_alert = THRESHOLDS["temperature_alert"]
-    if temp < t_warn:
-        return int(min(15, max(0, (temp - 20) / (t_warn - 20) * 10)))
-    elif temp < t_alert:
-        return int(10 + (temp - t_warn) / (t_alert - t_warn) * 15)
-    return 25
-
-
-# scorul gazului depinde de nivelul clasificat, nu direct de valoare bruta
-def _gas_score(gas: int, thresholds: GasThresholds | None = None) -> int:
-    scores = {
-        GasLevel.NORMAL:   0,
-        GasLevel.LOW:      8,
-        GasLevel.MEDIUM:   15,
-        GasLevel.HIGH:     22,
-        GasLevel.CRITICAL: 30,
-    }
-    return scores[classify_gas_level(gas, thresholds)]
-
-
-def _trend_score(temp_history: list[float]) -> int:
-    # cat de repede creste temperatura - daca urca 10 grade in 5 citiri e suspect
-    if len(temp_history) < 2:
-        return 0
-    delta = temp_history[-1] - temp_history[0]
-    if delta < 2:   return 0
-    if delta < 5:   return 5
-    if delta < 10:  return 12
-    return 20
-
-
-def _neighbour_score(neighbour_alerts: int) -> int:
-    # daca si vecinii raporteaza probleme e mai credibil
-    if neighbour_alerts == 0: return 0
-    if neighbour_alerts == 1: return 7
-    return 15
-
-
-def _comm_score(rssi: int) -> int:
-    return 5 if rssi < -80 else 0
-
-
-def compute_risk_score(
-    temperature: float,
-    gas_value: int,
-    temp_history: list[float],
-    neighbour_alerts: int,
-    rssi: int,
-    gas_thresholds: GasThresholds | None = None,
-) -> int:
-    score = (
-        _temperature_score(temperature)
-        + _gas_score(gas_value, gas_thresholds)
-        + _trend_score(temp_history)
-        + _neighbour_score(neighbour_alerts)
-        + _comm_score(rssi)
-    )
-    return min(100, max(0, score))
-
-
+# Scorul de risc e calculat pe nod (computeRiskScore in firmware) si trimis gata
+# in pachet. Backend-ul nu il recalculeaza — clasifica direct statusul dupa praguri,
+# pentru un comportament predictibil si usor de explicat.
 def classify_status_direct(
     gas_value: int,
     temperature: float,
