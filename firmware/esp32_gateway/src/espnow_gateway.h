@@ -21,6 +21,7 @@ struct SensorPacket {
     uint32_t timestampMs;
     uint8_t  route[MAX_HOPS];
     uint8_t  routeLen;
+    uint8_t  tempSensorOk;   // 1 = senzor temperatura OK, 0 = defect/absent
 };
 
 struct CommandPacket {

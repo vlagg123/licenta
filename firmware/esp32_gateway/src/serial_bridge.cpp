@@ -33,10 +33,11 @@ void serial_bridge_send_packet(const SensorPacket& pkt, int8_t rssi) {
     for (int i = 0; i < pkt.routeLen && i < MAX_HOPS; i++) route.add(pkt.route[i]);
     route.add(0);  // gateway e intotdeauna destinatia finala
 
-    doc["hop_count"]  = pkt.hopCount;
-    doc["rssi"]       = rssi;
-    doc["battery"]    = pkt.battery;
-    doc["latency_ms"] = pkt.hopCount * 8 + 5;
+    doc["hop_count"]     = pkt.hopCount;
+    doc["rssi"]          = rssi;
+    doc["battery"]       = pkt.battery;
+    doc["latency_ms"]    = pkt.hopCount * 8 + 5;
+    doc["temp_sensor_ok"] = (bool)pkt.tempSensorOk;
 
     // timestamp-ul e adaugat de Raspberry Pi la receptionare (serial_gateway.py)
     doc["timestamp"] = "2026-01-01T00:00:00";

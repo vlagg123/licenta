@@ -11,5 +11,8 @@ enum CommandType : uint8_t {
 
 void commands_init(uint8_t ledPin, uint8_t buzzerPin);
 void commands_handle(const CommandPacket& cmd);
+// executa testul de alarma daca a fost cerut — se apeleaza din loop(), nu din
+// callback-ul ESP-NOW, fiindca foloseste delay-uri blocante
+void commands_run_pending();
 bool commands_is_muted();
 bool commands_is_maintenance();

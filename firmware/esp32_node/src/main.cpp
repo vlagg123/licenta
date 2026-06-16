@@ -18,8 +18,9 @@ static GasThresholds gasThresholds = {
 static float tempHistory[5] = {25.0f, 25.0f, 25.0f, 25.0f, 25.0f};
 static int   histIdx        = 0;
 
-// Scor de risc multi-factor (0-100): combina temperatura, gaz, trend, baterie si semnal
-// Nodul trimite acest scor catre gateway; statusul final e re-calculat de backend
+// Scor de risc multi-factor (0-100): combina temperatura, gaz, trend, baterie si semnal.
+// E doar o valoare informativa trimisa la dashboard; statusul care aprinde LED-ul si
+// porneste buzzerul se decide separat, pe praguri directe, in classifyStatus().
 static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     int score = 0;
 
@@ -49,10 +50,16 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     return min(100, max(0, score));
 }
 
-static uint8_t classifyStatus(int risk) {
-    if (risk >= RISK_ALERT)   return 2;  // ALERT
-    if (risk >= RISK_WARNING) return 1;  // WARNING
-    return 0;                            // NORMAL
+// Status local pe baza pragurilor directe — aceeasi logica ca backend-ul.
+// Temperatura e indicator primar de incendiu: temp critica declanseaza ALERT
+// independent de gaz, iar gazul critic la fel. Astfel nodul fizic (LED + buzzer)
+// reactioneaza identic cu ce arata dashboard-ul, nu mai surd.
+static uint8_t classifyStatus(float temp, int gas, GasLevel gasLevel) {
+    bool critical = (gasLevel == GAS_CRITICAL) || (temp >= TEMP_ALERT);
+    bool warning  = (gas > gasThresholds.normalMax) || (temp >= TEMP_WARNING);
+    if (critical) return 2;  // ALERT
+    if (warning)  return 1;  // WARNING
+    return 0;                // NORMAL
 }
 
 static void updateIndicators(uint8_t status, GasLevel gasLevel) {
@@ -63,8 +70,10 @@ static void updateIndicators(uint8_t status, GasLevel gasLevel) {
         return;
     }
 
+    // buzzerul suna la orice ALERT (temp critica SAU gaz critic), daca nu e pe mute;
+    // optional si la gaz HIGH cand buzzerOnHigh e activ
     bool buzzerActive = !commands_is_muted() &&
-                        shouldActivateBuzzer(gasLevel, gasThresholds);
+                        (status == 2 || shouldActivateBuzzer(gasLevel, gasThresholds));
 
     switch (status) {
         case 2:  digitalWrite(PIN_LED, HIGH);              break;
@@ -101,13 +110,17 @@ static void sendSensorPacket(const SensorData& sd) {
     // RSSI-ul peer-ului ESP-NOW nu e accesibil direct fara modul promiscuu activat
     int8_t rssi = -60;
 
-    histIdx = (histIdx + 1) % 5;
-    tempHistory[histIdx] = sd.temperature;
+    // istoricul de temperatura se actualizeaza doar cu citiri valide,
+    // ca un senzor defect sa nu polueze detectia de trend
+    if (sd.tempValid) {
+        histIdx = (histIdx + 1) % 5;
+        tempHistory[histIdx] = sd.temperature;
+    }
 
     GasLevel gasLevel = classifyGasLevel(sd.gasValue, gasThresholds);
     int risk = computeRiskScore(sd.temperature, sd.gasValue, 85, rssi);
 
-    uint8_t status = classifyStatus(risk);
+    uint8_t status = classifyStatus(sd.temperature, sd.gasValue, gasLevel);
     inAlertMode = (status == 2);
 
     SensorPacket pkt;
@@ -127,6 +140,7 @@ static void sendSensorPacket(const SensorData& sd) {
     pkt.timestampMs   = millis();
     pkt.route[0]      = nodeId;
     pkt.routeLen      = 1;
+    pkt.tempSensorOk  = sd.tempValid ? 1 : 0;
 
     uint8_t nextHopMac[6];
     memcpy(nextHopMac, GATEWAY_MAC, 6);
@@ -156,6 +170,10 @@ void setup() {
 }
 
 void loop() {
+    // executa testul de alarma aici (in task-ul principal), nu in callback-ul ESP-NOW,
+    // ca delay-urile lui sa nu blocheze stiva radio si sa reseteze nodul
+    commands_run_pending();
+
     routing_check_timeouts();
 
     SensorData sd = sensors_read();

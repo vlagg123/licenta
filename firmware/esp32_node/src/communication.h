@@ -23,6 +23,7 @@ struct SensorPacket {
     uint32_t timestampMs;
     uint8_t  route[MAX_HOPS];  // ID-urile nodurilor de pe traseul pachetului, 0 = gateway
     uint8_t  routeLen;
+    uint8_t  tempSensorOk;     // 1 = senzor temperatura OK, 0 = defect/absent
 };
 
 // ── pachet de comanda (gateway → nod) ─────────────────────────────────────

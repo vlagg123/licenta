@@ -167,7 +167,7 @@ function nodeCardHTML(n) {
       <span class="nc-badge nc-badge-${n.status}">${n.status}</span>
     </div>
     <div class="nc-metrics">
-      <span><strong>${offline ? '–' : (n.temperature != null ? n.temperature.toFixed(1) + '°C' : '–')}</strong>Temp</span>
+      <span><strong>${offline ? '–' : (n.temp_sensor_ok === false ? '⚠' : (n.temperature != null ? n.temperature.toFixed(1) + '°C' : '–'))}</strong>Temp</span>
       <span><strong style="color:${offline ? '#6b7280' : gasColor}">${offline ? '–' : (n.gas_value ?? '–')}</strong>Gaz</span>
       <span><strong>${offline ? '–' : (n.risk_score ?? '–')}</strong>Risc</span>
     </div>
@@ -204,9 +204,11 @@ function updateDetailPanel(nodeId) {
   document.getElementById('d-status').textContent = n.status || '–';
   document.getElementById('d-status').style.color = NODE_COLORS[n.status] || '#fff';
   document.getElementById('d-risk').textContent   = offline ? '–' : (n.risk_score ?? '–');
-  document.getElementById('d-temp').textContent   = offline ? '–' : (n.temperature != null ? `${n.temperature.toFixed(1)} °C` : '–');
-  document.getElementById('d-hum').textContent    = offline ? '–' : (n.humidity  != null ? `${n.humidity.toFixed(1)} %` : '–');
-  document.getElementById('d-pres').textContent   = offline ? '–' : (n.pressure  != null ? `${n.pressure.toFixed(1)} hPa` : '–');
+  // BME280 da temperatura, umiditatea si presiunea; daca e defect, toate trei sunt nesigure
+  const bmeDead = !offline && n.temp_sensor_ok === false;
+  document.getElementById('d-temp').textContent = offline ? '–' : (bmeDead ? '⚠ senzor defect' : (n.temperature != null ? `${n.temperature.toFixed(1)} °C` : '–'));
+  document.getElementById('d-hum').textContent  = (offline || bmeDead) ? '–' : (n.humidity != null ? `${n.humidity.toFixed(1)} %` : '–');
+  document.getElementById('d-pres').textContent = (offline || bmeDead) ? '–' : (n.pressure != null ? `${n.pressure.toFixed(1)} hPa` : '–');
 
   if (offline) {
     document.getElementById('d-gas').textContent = '–';
@@ -272,7 +274,9 @@ function buildEventRow(ev) {
   const ts   = new Date(ev.timestamp);
   const time = ts.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const type = (ev.event_type || ev.status || 'INFO').toUpperCase();
-  const evClass = ['ALERT', 'WARNING', 'NORMAL', 'OFFLINE', 'COMMAND'].includes(type) ? type : 'NORMAL';
+  let evClass = ['ALERT', 'WARNING', 'NORMAL', 'OFFLINE', 'COMMAND'].includes(type) ? type : 'NORMAL';
+  if (type === 'GAS_CRITICAL')      evClass = 'ALERT';
+  else if (type === 'SENSOR_FAULT') evClass = 'WARNING';
   div.className = `event-row ev-${evClass}`;
   div.innerHTML = `
     <span class="ev-time">${time}</span>

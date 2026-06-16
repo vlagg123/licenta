@@ -18,8 +18,8 @@ static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 #define PIN_BME_SDA    33   // I2C SDA pentru BME280
 #define PIN_BME_SCL    32   // I2C SCL pentru BME280
 
-// Adresa I2C a BME280: 0x76 daca SDO e la GND, 0x77 daca SDO e la VCC
-#define BME280_ADDRESS 0x76
+// Adresa I2C a BME280: 0x76 daca SDO e la GND, 0x77 daca SDO e la VCC.
+// sensors_init() incearca automat ambele, deci nu o fixam aici.
 
 // Intervalul de trimitere scade in caz de alerta pentru reactie mai rapida
 #define INTERVAL_NORMAL_MS   5000
@@ -33,8 +33,6 @@ static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 #define TEMP_ALERT     65.0f
 #define GAS_WARNING    400
 #define GAS_ALERT      700
-#define RISK_WARNING   40
-#define RISK_ALERT     70
 
 // Clasificare gaz in 5 niveluri — valori ADC brute pentru MQ-2/MQ-135
 // calibrate empiric dupa incalzire (~30s pentru citiri stabile, ~24h la prima pornire)

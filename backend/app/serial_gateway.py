@@ -54,6 +54,7 @@ def _parse_packet(raw: dict) -> Optional[SensorPacket]:
             rssi         = int(raw.get("rssi", -60)),
             battery      = int(raw.get("battery", 100)),
             latency_ms   = int(raw.get("latency_ms", 20)),
+            temp_sensor_ok = bool(raw.get("temp_sensor_ok", True)),
             timestamp    = datetime.utcnow(),
         )
     except Exception as exc:

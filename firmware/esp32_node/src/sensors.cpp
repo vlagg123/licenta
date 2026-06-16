@@ -2,6 +2,7 @@
 #include "config.h"
 #include <Arduino.h>
 #include <Wire.h>
+#include <math.h>
 #include <Adafruit_BME280.h>
 
 static Adafruit_BME280 bme;
@@ -35,16 +36,28 @@ void sensors_init() {
 
 SensorData sensors_read() {
     SensorData d;
-    d.valid = false;
+    d.tempValid = false;
 
     if (bme_ok) {
-        d.temperature = bme.readTemperature();
-        d.humidity    = bme.readHumidity();
-        d.pressure    = bme.readPressure() / 100.0f;  // Pa -> hPa
-    } else {
-        d.temperature = 25.0f;
-        d.humidity    = 50.0f;
-        d.pressure    = 1013.0f;
+        float t = bme.readTemperature();
+        float h = bme.readHumidity();
+        float p = bme.readPressure() / 100.0f;  // Pa -> hPa
+        // BME280 poate returna NaN daca s-a deconectat dupa initializare;
+        // o citire in afara domeniului fizic inseamna la fel senzor defect
+        if (!isnan(t) && t > -40.0f && t < 125.0f) {
+            d.temperature = t;
+            d.humidity    = isnan(h) ? 0.0f : h;
+            d.pressure    = isnan(p) ? 0.0f : p;
+            d.tempValid   = true;
+        }
+    }
+
+    if (!d.tempValid) {
+        // senzor termic indisponibil — trimitem valori neutre marcate ca nevalide,
+        // ca monitorizarea gazului sa continue iar defectul sa fie vizibil pe dashboard
+        d.temperature = 0.0f;
+        d.humidity    = 0.0f;
+        d.pressure    = 0.0f;
     }
 
     // media a 4 citiri ADC consecutive pentru reducerea zgomotului electric
@@ -52,8 +65,9 @@ SensorData sensors_read() {
     for (int i = 0; i < 4; i++) { sum += analogRead(PIN_MQ2); delay(2); }
     d.gasValue = sum / 4;
 
-    // temperatura in afara domeniului valid inseamna senzor deconectat sau defect
-    d.valid = (d.temperature > -40.0f && d.temperature < 125.0f);
+    // gazul e mereu disponibil pe ADC, deci pachetul merita trimis chiar daca
+    // senzorul de temperatura e defect — gazul nu trebuie pierdut niciodata
+    d.valid = true;
     return d;
 }
 

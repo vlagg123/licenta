@@ -100,6 +100,7 @@ async def _on_packet(pkt: SensorPacket) -> None:
 
     prev_status    = ns.status
     prev_gas_level = ns.gas_level
+    prev_temp_ok   = ns.temp_sensor_ok
     glevel = classify_gas_level(pkt.gas_value, _gas_thresholds)
     gcolor = gas_level_color(glevel)
 
@@ -129,6 +130,7 @@ async def _on_packet(pkt: SensorPacket) -> None:
     ns.rssi            = pkt.rssi
     ns.battery         = pkt.battery
     ns.latency_ms      = pkt.latency_ms
+    ns.temp_sensor_ok  = pkt.temp_sensor_ok
     ns.last_seen       = pkt.timestamp
     ns.packet_count   += 1
 
@@ -137,6 +139,10 @@ async def _on_packet(pkt: SensorPacket) -> None:
         if glevel == GasLevel.CRITICAL and prev_gas_level != GasLevel.CRITICAL:
             _record_event(pkt.node_id, "GAS_CRITICAL",
                           f"Nod {pkt.node_id} ({ns.zone}): gaz critic - {pkt.gas_value} ADC",
+                          pkt.risk_score)
+        if prev_temp_ok and not pkt.temp_sensor_ok:
+            _record_event(pkt.node_id, "SENSOR_FAULT",
+                          f"Nod {pkt.node_id} ({ns.zone}): senzor temperatura defect - monitorizez doar gazul",
                           pkt.risk_score)
         if ns.packet_count % 10 == 0:
             insert_sensor_snapshot(pkt.node_id, pkt.temperature, pkt.humidity,
@@ -170,6 +176,7 @@ async def _on_packet(pkt: SensorPacket) -> None:
         "rssi":            pkt.rssi,
         "battery":         pkt.battery,
         "latency_ms":      pkt.latency_ms,
+        "temp_sensor_ok":  pkt.temp_sensor_ok,
         "timestamp":       pkt.timestamp,
         "buzzer_on_high":  _gas_thresholds.enable_buzzer_on_gas_high,
     })

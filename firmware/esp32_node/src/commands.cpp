@@ -6,6 +6,7 @@ static uint8_t _led_pin    = PIN_LED;
 static uint8_t _buzzer_pin = PIN_BUZZER;
 static bool    _muted      = false;
 static bool    _maintenance = false;
+static bool    _test_pending = false;
 
 static float _temp_warn  = TEMP_WARNING;
 static float _temp_alert = TEMP_ALERT;
@@ -24,7 +25,7 @@ void commands_init(uint8_t ledPin, uint8_t buzzerPin) {
 static void _beep(int times, int onMs, int offMs) {
     if (_muted) return;
     for (int i = 0; i < times; i++) {
-        digitalWrite(_buzzer_pin, LOW);
+        digitalWrite(_buzzer_pin, HIGH);  // HIGH = buzzerul suna
         delay(onMs);
         digitalWrite(_buzzer_pin, LOW);
         delay(offMs);
@@ -56,9 +57,10 @@ void commands_handle(const CommandPacket& cmd) {
             break;
 
         case CMD_TEST_ALARM:
-            _beep(3, 200, 100);
-            _blink(3, 200, 100);
-            Serial.println("[CMD] test alarma executat");
+            // nu sunam aici — comanda vine din callback-ul ESP-NOW, iar delay-urile
+            // ar bloca stiva radio; marcam si executam in loop() prin commands_run_pending()
+            _test_pending = true;
+            Serial.println("[CMD] test alarma programat");
             break;
 
         case CMD_SET_THRESHOLDS:
@@ -75,6 +77,14 @@ void commands_handle(const CommandPacket& cmd) {
         default:
             Serial.printf("[CMD] comanda necunoscuta: %d\n", cmd.commandType);
     }
+}
+
+void commands_run_pending() {
+    if (!_test_pending) return;
+    _test_pending = false;
+    _beep(3, 200, 100);
+    _blink(3, 200, 100);
+    Serial.println("[CMD] test alarma executat");
 }
 
 bool commands_is_muted()       { return _muted; }

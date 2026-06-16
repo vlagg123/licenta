@@ -74,6 +74,7 @@ class SensorPacket(BaseModel):
     rssi:         int
     battery:      int
     latency_ms:   int
+    temp_sensor_ok: bool = True
     timestamp:    datetime
 
     class Config:
@@ -100,6 +101,7 @@ class NodeState(BaseModel):
     rssi:            int  = -60
     battery:         int  = 100
     latency_ms:      int  = 10
+    temp_sensor_ok:  bool = True
     last_seen:       Optional[datetime] = None
     packet_count:    int  = 0
 
