@@ -11,10 +11,7 @@ static void _on_recv(const uint8_t* mac, const uint8_t* data, int len) {
     if (len == sizeof(SensorPacket)) {
         SensorPacket pkt;
         memcpy(&pkt, data, sizeof(pkt));
-        // DE MODIFICAT PENTRU PARTEA HARDWARE:
-        // rssi-ul real e disponibil doar in modul promiscuu (vezi communication.cpp din node)
-        // pentru gateway e chiar mai relevant sa il masori pt ca el e capatul final
-        // deocamdata folosim -60 ca valoare aproximativa
+        // RSSI real al peer-ului necesita modul promiscuu; folosim -60 ca aproximatie
         int8_t rssi = -60;
         Serial.printf("[GW-RX] Nod=%d Risk=%d Temp=%.1f Gas=%d\n",
                       pkt.sourceId, pkt.riskScore, pkt.temperature, pkt.gasValue);
@@ -30,8 +27,7 @@ void espnow_init() {
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
 
-    // DE MODIFICAT PENTRU PARTEA HARDWARE:
-    // MAC-ul afisat aici e cel pe care trebuie sa il pui in GATEWAY_MAC din config.h al fiecarui nod
+    // MAC-ul afisat aici trebuie copiat in GATEWAY_MAC din config.h al fiecarui nod
     Serial.print("[GW] MAC: ");
     Serial.println(WiFi.macAddress());
 

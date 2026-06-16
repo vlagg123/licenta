@@ -3,21 +3,14 @@
 #include "espnow_gateway.h"
 #include "serial_bridge.h"
 
-// DE MODIFICAT PENTRU PARTEA HARDWARE:
-// inlocuieste toate MAC-urile de mai jos cu valorile reale ale nodurilor senzoriale
-// pasii:
-//   1. flashuieste fiecare nod sensor
-//   2. deschide Serial Monitor (115200 baud)
-//   3. reseteaza nodul - va printa ceva de genul "[COMM] ESP-NOW pornit. Nod 1"
-//      dar MAC-ul ESP32 apare de obicei inainte, la WiFi.mode() in comm_init
-//      alternativ adauga Serial.println(WiFi.macAddress()) in comm_init
-//   4. copiaza MAC-ul aici in formatul { 0xAA, 0xBB, ... }
+// MAC-urile nodurilor senzoriale — citite din Serial Monitor dupa flashuirea fiecarui nod
+// adauga Serial.println(WiFi.macAddress()) in comm_init() al nodului ca sa apara la boot
 static uint8_t NODE_MACS[5][6] = {
-    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00},  // 0 = gateway (self, nu e folosit)
-    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x01},  // 1 = Intrare  - DE MODIFICAT
-    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x02},  // 2 = Depozit  - DE MODIFICAT
-    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x03},  // 3 = Parcare  - DE MODIFICAT
-    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x04},  // 4 = Tablou   - DE MODIFICAT
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00},  // 0 = gateway (self, neutilizat)
+    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x01},  // 1 = Intrare
+    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x02},  // 2 = Depozit
+    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x03},  // 3 = Parcare
+    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x04},  // 4 = Tablou electric
 };
 
 static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
