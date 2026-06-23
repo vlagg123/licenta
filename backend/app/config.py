@@ -23,5 +23,5 @@ NODES_CONFIG: dict = {
 THRESHOLDS: dict = {
     "temperature_warning": 45.0,
     "temperature_alert":   65.0,
-    "offline_timeout_s":   30,   # secunde fara date pana cand nodul e marcat offline
+    "offline_timeout_s":   15,   # secunde fara date pana cand nodul e marcat offline (3 pachete ratate)
 }

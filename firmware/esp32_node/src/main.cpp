@@ -214,6 +214,7 @@ void loop() {
     uint32_t interval = inAlertMode ? INTERVAL_ALERT_MS : INTERVAL_NORMAL_MS;
     uint32_t start = millis();
     while (millis() - start < interval) {
+        commands_run_pending();   // testul de alarma raspunde in ~30ms, nu pana la 5s
         updateIndicators(lastStatus, lastGasLevel);
         delay(30);
     }
