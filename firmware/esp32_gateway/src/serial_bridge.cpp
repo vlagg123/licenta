@@ -53,7 +53,8 @@ void serial_bridge_poll() {
     line.trim();
     if (line.length() == 0) return;
 
-    StaticJsonDocument<256> doc;
+    // 512 ca sa incapa comanda SET_THRESHOLDS cu toti cei 4 parametri + timestamp
+    StaticJsonDocument<512> doc;
     DeserializationError err = deserializeJson(doc, line);
     if (err) {
         Serial.printf("{\"type\":\"error\",\"msg\":\"JSON parse error: %s\"}\n", err.c_str());
