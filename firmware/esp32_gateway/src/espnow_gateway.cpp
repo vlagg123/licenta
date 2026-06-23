@@ -7,10 +7,21 @@
 
 static void (*_pkt_cb)(const SensorPacket&, int8_t) = nullptr;
 
+// tabela de MAC-uri invatate din pachetele primite, indexata dupa node_id;
+// asa gateway-ul stie unde sa trimita comenzile fara MAC-uri hardcodate
+#define GW_MAX_NODES 8
+static uint8_t _node_mac[GW_MAX_NODES][6];
+static bool    _node_known[GW_MAX_NODES] = { false };
+
 static void _on_recv(const uint8_t* mac, const uint8_t* data, int len) {
     if (len == sizeof(SensorPacket)) {
         SensorPacket pkt;
         memcpy(&pkt, data, sizeof(pkt));
+        // invatam MAC-ul real al nodului din pachet, ca sa-i putem trimite comenzi inapoi
+        if (pkt.sourceId < GW_MAX_NODES) {
+            memcpy(_node_mac[pkt.sourceId], mac, 6);
+            _node_known[pkt.sourceId] = true;
+        }
         // RSSI real al peer-ului necesita modul promiscuu; folosim -60 ca aproximatie
         int8_t rssi = -60;
         Serial.printf("[GW-RX] Nod=%d Risk=%d Temp=%.1f Gas=%d\n",
@@ -49,6 +60,12 @@ bool espnow_send_command(const CommandPacket& cmd, const uint8_t* destMac) {
         esp_now_add_peer(&peer);
     }
     return esp_now_send(destMac, (uint8_t*)&cmd, sizeof(cmd)) == ESP_OK;
+}
+
+bool espnow_send_command_to_node(const CommandPacket& cmd, uint8_t nodeId) {
+    // foloseste MAC-ul invatat din pachete; daca nodul nu a trimis inca date, nu stim unde sa-i trimitem
+    if (nodeId >= GW_MAX_NODES || !_node_known[nodeId]) return false;
+    return espnow_send_command(cmd, _node_mac[nodeId]);
 }
 
 void espnow_register_packet_callback(void (*cb)(const SensorPacket&, int8_t rssi)) {

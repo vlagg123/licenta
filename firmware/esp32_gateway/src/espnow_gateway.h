@@ -36,4 +36,7 @@ struct CommandPacket {
 
 void     espnow_init();
 bool     espnow_send_command(const CommandPacket& cmd, const uint8_t* destMac);
+// trimite o comanda catre un nod folosind MAC-ul invatat din pachetele primite;
+// intoarce false daca nodul nu a fost inca auzit (MAC necunoscut)
+bool     espnow_send_command_to_node(const CommandPacket& cmd, uint8_t nodeId);
 void     espnow_register_packet_callback(void (*cb)(const SensorPacket&, int8_t rssi));

@@ -46,7 +46,7 @@ void serial_bridge_send_packet(const SensorPacket& pkt, int8_t rssi) {
     Serial.println();
 }
 
-void serial_bridge_poll(const uint8_t nodeMacs[][6], int nodeCount) {
+void serial_bridge_poll() {
     if (!Serial.available()) return;
 
     String line = Serial.readStringUntil('\n');
@@ -78,12 +78,12 @@ void serial_bridge_poll(const uint8_t nodeMacs[][6], int nodeCount) {
     else if (strcmp(ct, "SET_THRESHOLDS")       == 0) cmd.commandType = 5;
     else if (strcmp(ct, "SET_MAINTENANCE_MODE") == 0) cmd.commandType = 6;
 
+    // trimite catre nod folosind MAC-ul invatat din pachetele lui
     uint8_t target = cmd.targetNode;
-    if (target > 0 && target < (uint8_t)nodeCount) {
-        espnow_send_command(cmd, nodeMacs[target]);
+    if (espnow_send_command_to_node(cmd, target)) {
         Serial.printf("{\"type\":\"ack\",\"command_id\":\"%s\",\"target\":%d}\n",
                       cmd.commandId, target);
     } else {
-        Serial.printf("{\"type\":\"error\",\"msg\":\"nod tinta necunoscut %d\"}\n", target);
+        Serial.printf("{\"type\":\"error\",\"msg\":\"nod %d necunoscut - nu a trimis inca date\"}\n", target);
     }
 }
