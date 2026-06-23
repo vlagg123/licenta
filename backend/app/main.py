@@ -252,12 +252,18 @@ async def send_command(cmd: NodeCommand):
     if not _serial_gw:
         raise HTTPException(503, "gateway serial neinitializat")
 
+    # butonul Mentenanta inseamna "intra in mentenanta" -> nodul citeste param1=1;
+    # iesirea se face cu Reset (RESET_ALERT). fara param1, nodul primea 0 si nu activa modul.
+    payload = dict(cmd.payload)
+    if cmd.command_type == CommandType.SET_MAINTENANCE_MODE:
+        payload["param1"] = 1.0
+
     sent = await _serial_gw.send_command({
         "type":         "command",
         "command_id":   cmd.command_id,
         "target_node":  cmd.target_node,
         "command_type": cmd.command_type,
-        "payload":      cmd.payload,
+        "payload":      payload,
         "timestamp":    cmd.timestamp.isoformat(),
     })
     if not sent:
