@@ -103,6 +103,14 @@ static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
 static void onCommandReceived(const CommandPacket& cmd) {
     if (cmd.targetNode == nodeId || cmd.targetNode == 0xFF) {
         commands_handle(cmd);
+        // pragurile din dashboard se aplica aici, unde traieste gasThresholds:
+        // param1 = normal max, param2 = critic min (pragul la care suna buzzerul)
+        if (cmd.commandType == CMD_SET_THRESHOLDS) {
+            if (cmd.param1 > 0) gasThresholds.normalMax   = (int)cmd.param1;
+            if (cmd.param2 > 0) gasThresholds.criticalMin = (int)cmd.param2;
+            Serial.printf("[CFG] praguri gaz actualizate: normal<=%d critic>=%d\n",
+                          gasThresholds.normalMax, gasThresholds.criticalMin);
+        }
     }
 }
 

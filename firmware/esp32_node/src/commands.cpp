@@ -8,11 +8,6 @@ static bool    _muted      = false;
 static bool    _maintenance = false;
 static bool    _test_pending = false;
 
-static float _temp_warn  = TEMP_WARNING;
-static float _temp_alert = TEMP_ALERT;
-static int   _gas_warn   = GAS_WARNING;
-static int   _gas_alert  = GAS_ALERT;
-
 void commands_init(uint8_t ledPin, uint8_t buzzerPin) {
     _led_pin    = ledPin;
     _buzzer_pin = buzzerPin;
@@ -64,9 +59,8 @@ void commands_handle(const CommandPacket& cmd) {
             break;
 
         case CMD_SET_THRESHOLDS:
-            _temp_warn = cmd.param1;
-            _gas_alert = (int)cmd.param2;
-            Serial.printf("[CMD] praguri noi: T_warn=%.1f Gas_alert=%d\n", _temp_warn, _gas_alert);
+            // pragurile efective se aplica in main.cpp, unde traieste gasThresholds
+            Serial.printf("[CMD] praguri gaz: normal<=%.0f critic>=%.0f\n", cmd.param1, cmd.param2);
             break;
 
         case CMD_SET_MAINTENANCE_MODE:

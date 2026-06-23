@@ -134,6 +134,11 @@ async def _on_packet(pkt: SensorPacket) -> None:
     ns.last_seen       = pkt.timestamp
     ns.packet_count   += 1
 
+    # un nod care tocmai a revenit online (sau a pornit) foloseste pragurile compilate;
+    # ii retrimitem pragurile din dashboard ca buzzerul sa reactioneze la valorile curente
+    if prev_status == NodeStatus.OFFLINE:
+        asyncio.create_task(_push_thresholds_to_node(pkt.node_id))
+
     # scrierile in DB sunt separate de broadcast — o eroare DB nu blocheaza UI-ul
     try:
         if glevel == GasLevel.CRITICAL and prev_gas_level != GasLevel.CRITICAL:
@@ -196,6 +201,22 @@ def _record_event(node_id: int, event_type: str, description: str, risk_score: i
         loop.create_task(manager.broadcast(payload))
     except RuntimeError:
         pass
+
+
+async def _push_thresholds_to_node(node_id: int) -> None:
+    # trimite pragul de gaz curent catre nod prin SET_THRESHOLDS:
+    # param1 = pragul "normal max", param2 = pragul "critic min" (cand suna buzzerul)
+    if not _serial_gw:
+        return
+    await _serial_gw.send_command({
+        "type":         "command",
+        "command_id":   f"thr-{node_id}-{int(time.time())}",
+        "target_node":  node_id,
+        "command_type": CommandType.SET_THRESHOLDS.value,
+        "payload":      {"param1": float(_gas_thresholds.normal_max),
+                         "param2": float(_gas_thresholds.critical_min)},
+        "timestamp":    datetime.utcnow().isoformat(),
+    })
 
 
 @app.get("/api/nodes", tags=["Nodes"])
@@ -277,6 +298,11 @@ async def update_gas_thresholds(thresholds: GasThresholds):
     _gas_thresholds = thresholds
     set_setting("gas_thresholds", json.dumps(thresholds.dict()))
     await manager.broadcast({"type": "thresholds_updated", "thresholds": thresholds.dict()})
+
+    # propaga noile praguri la noduri ca buzzerul lor sa foloseasca valorile setate aici
+    for nid in node_states:
+        await _push_thresholds_to_node(nid)
+
     return _gas_thresholds
 
 
