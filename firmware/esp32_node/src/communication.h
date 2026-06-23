@@ -31,8 +31,10 @@ struct CommandPacket {
     char    commandId[9];
     uint8_t targetNode;
     uint8_t commandType;   // valorile sunt definite in enum-ul CommandType din commands.h
-    float   param1;        // parametru generic de tip float
-    float   param2;
+    float   param1;        // parametri generici (la SET_THRESHOLDS: gaz normal, gaz critic,
+    float   param2;        //                     temp warning, temp critic)
+    float   param3;
+    float   param4;
 };
 
 void comm_init(uint8_t selfId, const uint8_t* gatewayMac);

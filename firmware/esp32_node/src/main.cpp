@@ -14,6 +14,11 @@ static GasThresholds gasThresholds = {
     (bool)BUZZER_ON_GAS_HIGH
 };
 
+// Praguri de temperatura runtime — pornesc de la valorile din config dar pot fi
+// schimbate din dashboard prin comanda SET_THRESHOLDS, ca buzzerul/LED-ul sa urmeze setarile
+static float tempWarning = TEMP_WARNING;
+static float tempAlert   = TEMP_ALERT;
+
 // Istoricul ultimelor 5 temperaturi — folosit pentru detectia trendului termic
 static float tempHistory[5] = {25.0f, 25.0f, 25.0f, 25.0f, 25.0f};
 static int   histIdx        = 0;
@@ -25,10 +30,10 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     int score = 0;
 
     // componenta temperatura — proportionala pana la prag, maxima dupa
-    if (temp < TEMP_WARNING)
-        score += (int)((temp - 20.0f) / (TEMP_WARNING - 20.0f) * 10.0f);
-    else if (temp < TEMP_ALERT)
-        score += 10 + (int)((temp - TEMP_WARNING) / (TEMP_ALERT - TEMP_WARNING) * 15.0f);
+    if (temp < tempWarning)
+        score += (int)((temp - 20.0f) / (tempWarning - 20.0f) * 10.0f);
+    else if (temp < tempAlert)
+        score += 10 + (int)((temp - tempWarning) / (tempAlert - tempWarning) * 15.0f);
     else
         score += 25;
     score = max(0, score);
@@ -55,8 +60,8 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
 // independent de gaz, iar gazul critic la fel. Astfel nodul fizic (LED + buzzer)
 // reactioneaza identic cu ce arata dashboard-ul, nu mai surd.
 static uint8_t classifyStatus(float temp, int gas, GasLevel gasLevel) {
-    bool critical = (gasLevel == GAS_CRITICAL) || (temp >= TEMP_ALERT);
-    bool warning  = (gas > gasThresholds.normalMax) || (temp >= TEMP_WARNING);
+    bool critical = (gasLevel == GAS_CRITICAL) || (temp >= tempAlert);
+    bool warning  = (gas > gasThresholds.normalMax) || (temp >= tempWarning);
     if (critical) return 2;  // ALERT
     if (warning)  return 1;  // WARNING
     return 0;                // NORMAL
@@ -103,13 +108,16 @@ static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
 static void onCommandReceived(const CommandPacket& cmd) {
     if (cmd.targetNode == nodeId || cmd.targetNode == 0xFF) {
         commands_handle(cmd);
-        // pragurile din dashboard se aplica aici, unde traieste gasThresholds:
-        // param1 = normal max, param2 = critic min (pragul la care suna buzzerul)
+        // pragurile din dashboard se aplica aici:
+        // param1 = gaz normal max, param2 = gaz critic min,
+        // param3 = temp warning, param4 = temp critic (pragul la care suna buzzerul)
         if (cmd.commandType == CMD_SET_THRESHOLDS) {
             if (cmd.param1 > 0) gasThresholds.normalMax   = (int)cmd.param1;
             if (cmd.param2 > 0) gasThresholds.criticalMin = (int)cmd.param2;
-            Serial.printf("[CFG] praguri gaz actualizate: normal<=%d critic>=%d\n",
-                          gasThresholds.normalMax, gasThresholds.criticalMin);
+            if (cmd.param3 > 0) tempWarning = cmd.param3;
+            if (cmd.param4 > 0) tempAlert   = cmd.param4;
+            Serial.printf("[CFG] praguri: gaz normal<=%d critic>=%d | temp warn>=%.1f critic>=%.1f\n",
+                          gasThresholds.normalMax, gasThresholds.criticalMin, tempWarning, tempAlert);
         }
     }
 }

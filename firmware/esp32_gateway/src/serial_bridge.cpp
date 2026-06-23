@@ -67,6 +67,8 @@ void serial_bridge_poll(const uint8_t nodeMacs[][6], int nodeCount) {
     cmd.targetNode = doc["target_node"] | 0;
     cmd.param1     = doc["payload"]["param1"] | 0.0f;
     cmd.param2     = doc["payload"]["param2"] | 0.0f;
+    cmd.param3     = doc["payload"]["param3"] | 0.0f;
+    cmd.param4     = doc["payload"]["param4"] | 0.0f;
 
     // mapeaza numele comenzii (string) la codul numeric asteptat de noduri
     const char* ct = doc["command_type"];

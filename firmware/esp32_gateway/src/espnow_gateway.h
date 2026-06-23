@@ -30,6 +30,8 @@ struct CommandPacket {
     uint8_t commandType;
     float   param1;
     float   param2;
+    float   param3;
+    float   param4;
 };
 
 void     espnow_init();

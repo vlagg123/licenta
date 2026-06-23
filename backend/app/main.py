@@ -204,8 +204,9 @@ def _record_event(node_id: int, event_type: str, description: str, risk_score: i
 
 
 async def _push_thresholds_to_node(node_id: int) -> None:
-    # trimite pragul de gaz curent catre nod prin SET_THRESHOLDS:
-    # param1 = pragul "normal max", param2 = pragul "critic min" (cand suna buzzerul)
+    # trimite pragurile curente catre nod prin SET_THRESHOLDS, ca buzzerul/LED-ul sa
+    # urmeze valorile din dashboard: param1 = gaz normal max, param2 = gaz critic min,
+    # param3 = temp warning, param4 = temp critic
     if not _serial_gw:
         return
     await _serial_gw.send_command({
@@ -214,7 +215,9 @@ async def _push_thresholds_to_node(node_id: int) -> None:
         "target_node":  node_id,
         "command_type": CommandType.SET_THRESHOLDS.value,
         "payload":      {"param1": float(_gas_thresholds.normal_max),
-                         "param2": float(_gas_thresholds.critical_min)},
+                         "param2": float(_gas_thresholds.critical_min),
+                         "param3": float(_gas_thresholds.temp_warning),
+                         "param4": float(_gas_thresholds.temp_critical)},
         "timestamp":    datetime.utcnow().isoformat(),
     })
 
