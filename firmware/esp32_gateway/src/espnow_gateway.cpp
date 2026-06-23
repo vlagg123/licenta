@@ -27,6 +27,10 @@ static void _on_recv(const uint8_t* mac, const uint8_t* data, int len) {
         Serial.printf("[GW-RX] Nod=%d Risk=%d Temp=%.1f Gas=%d\n",
                       pkt.sourceId, pkt.riskScore, pkt.temperature, pkt.gasValue);
         if (_pkt_cb) _pkt_cb(pkt, rssi);
+    } else {
+        // pachet de marime neasteptata = firmware nepotrivit intre nod si gateway
+        Serial.printf("[GW-RX] pachet ignorat, size=%d (asteptat %d) - reflasheaza nod+gateway la aceeasi versiune\n",
+                      len, (int)sizeof(SensorPacket));
     }
 }
 
