@@ -23,6 +23,11 @@ static float tempAlert   = TEMP_ALERT;
 static float tempHistory[5] = {25.0f, 25.0f, 25.0f, 25.0f, 25.0f};
 static int   histIdx        = 0;
 
+// ultimul status / nivel gaz calculat — reimprospatate des in pauza dintre citiri
+// ca LED-ul sa poata clipi (warning) sau pulsa (mentenanta), nu doar o data la 5s
+static uint8_t  lastStatus   = 0;
+static GasLevel lastGasLevel = GAS_NORMAL;
+
 // Scor de risc multi-factor (0-100): combina temperatura, gaz, trend, baterie si semnal.
 // E doar o valoare informativa trimisa la dashboard; statusul care aprinde LED-ul si
 // porneste buzzerul se decide separat, pe praguri directe, in classifyStatus().
@@ -68,10 +73,13 @@ static uint8_t classifyStatus(float temp, int gas, GasLevel gasLevel) {
 }
 
 static void updateIndicators(uint8_t status, GasLevel gasLevel) {
-    // in mentenanta nodul nu mai semnalizeaza fizic — LED si buzzer raman stinse
+    // mentenanta: buzzer stins, dar LED-ul face un puls dublu scurt la ~2s (heartbeat),
+    // distinct vizual de ALERT (fix) si WARNING (clipire la ~1s)
     if (commands_is_maintenance()) {
-        digitalWrite(PIN_LED, LOW);
         digitalWrite(PIN_BUZZER, LOW);
+        uint32_t t = millis() % 2000;
+        bool led = (t < 120) || (t >= 250 && t < 370);
+        digitalWrite(PIN_LED, led ? HIGH : LOW);
         return;
     }
 
@@ -165,6 +173,8 @@ static void sendSensorPacket(const SensorData& sd) {
     Serial.printf("[TX] N%d T=%.1f Gas=%d GasLvl=%d Risk=%d Status=%d Sent=%d\n",
                   nodeId, sd.temperature, sd.gasValue, (int)gasLevel, risk, status, sent);
 
+    lastStatus   = status;
+    lastGasLevel = gasLevel;
     updateIndicators(status, gasLevel);
 }
 
@@ -199,6 +209,12 @@ void loop() {
         sendSensorPacket(sd);
     }
 
+    // asteapta intervalul, dar reimprospateaza des indicatorii ca LED-ul sa clipeasca/pulseze corect
+    // (ESP-NOW primeste comenzi prin callback chiar si in timpul acestei pauze)
     uint32_t interval = inAlertMode ? INTERVAL_ALERT_MS : INTERVAL_NORMAL_MS;
-    delay(interval);
+    uint32_t start = millis();
+    while (millis() - start < interval) {
+        updateIndicators(lastStatus, lastGasLevel);
+        delay(30);
+    }
 }
