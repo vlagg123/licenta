@@ -14,16 +14,16 @@ static GasThresholds gasThresholds = {
     (bool)BUZZER_ON_GAS_HIGH
 };
 
-// Praguri de temperatura runtime — pornesc de la valorile din config dar pot fi
+// Praguri de temperatura runtime - pornesc de la valorile din config dar pot fi
 // schimbate din dashboard prin comanda SET_THRESHOLDS, ca buzzerul/LED-ul sa urmeze setarile
 static float tempWarning = TEMP_WARNING;
 static float tempAlert   = TEMP_ALERT;
 
-// Istoricul ultimelor 5 temperaturi — folosit pentru detectia trendului termic
+// Istoricul ultimelor 5 temperaturi - folosit pentru detectia trendului termic
 static float tempHistory[5] = {25.0f, 25.0f, 25.0f, 25.0f, 25.0f};
 static int   histIdx        = 0;
 
-// ultimul status / nivel gaz calculat — reimprospatate des in pauza dintre citiri
+// ultimul status / nivel gaz calculat - reimprospatate des in pauza dintre citiri
 // ca LED-ul sa poata clipi (warning) sau pulsa (mentenanta), nu doar o data la 5s
 static uint8_t  lastStatus   = 0;
 static GasLevel lastGasLevel = GAS_NORMAL;
@@ -34,7 +34,7 @@ static GasLevel lastGasLevel = GAS_NORMAL;
 static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     int score = 0;
 
-    // componenta temperatura — proportionala pana la prag, maxima dupa
+    // componenta temperatura - proportionala pana la prag, maxima dupa
     if (temp < tempWarning)
         score += (int)((temp - 20.0f) / (tempWarning - 20.0f) * 10.0f);
     else if (temp < tempAlert)
@@ -43,12 +43,12 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
         score += 25;
     score = max(0, score);
 
-    // componenta gaz — proportionala intre warning si alert
+    // componenta gaz - proportionala intre warning si alert
     if (gas < GAS_WARNING)       score += gas * 10 / GAS_WARNING;
     else if (gas < GAS_ALERT)    score += 10 + (gas - GAS_WARNING) * 20 / (GAS_ALERT - GAS_WARNING);
     else                         score += 30;
 
-    // trend termic — crestere brusca in 5 masuratori consecutive sugereaza un incendiu
+    // trend termic - crestere brusca in 5 masuratori consecutive sugereaza un incendiu
     float delta = tempHistory[histIdx] - tempHistory[(histIdx + 1) % 5];
     if      (delta >= 10.0f) score += 20;
     else if (delta >= 5.0f)  score += 12;
@@ -60,7 +60,7 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     return min(100, max(0, score));
 }
 
-// Status local pe baza pragurilor directe — aceeasi logica ca backend-ul.
+// Status local pe baza pragurilor directe - aceeasi logica ca backend-ul.
 // Temperatura e indicator primar de incendiu: temp critica declanseaza ALERT
 // independent de gaz, iar gazul critic la fel. Astfel nodul fizic (LED + buzzer)
 // reactioneaza identic cu ce arata dashboard-ul, nu mai surd.
@@ -160,7 +160,7 @@ static void sendSensorPacket(const SensorData& sd) {
     pkt.riskScore     = (uint8_t)risk;
     pkt.hopCount      = 1;
     pkt.rssi          = rssi;
-    pkt.battery       = 85;  // hardcodat — citirea reala necesita divizor de tensiune pe ADC
+    pkt.battery       = 85;  // hardcodat - citirea reala necesita divizor de tensiune pe ADC
     pkt.timestampMs   = millis();
     pkt.route[0]      = nodeId;
     pkt.routeLen      = 1;

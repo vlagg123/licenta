@@ -4,7 +4,7 @@
 
 #define MAX_HOPS 4
 
-// ── structura pachetului ESP-NOW ───────────────────────────────────────────
+// structura pachetului ESP-NOW
 // trimis de nodurile senzoriale catre gateway (sau urmatorul hop)
 struct SensorPacket {
     char    packetId[9];     // ID hex pe 8 caractere + terminator null
@@ -26,7 +26,7 @@ struct SensorPacket {
     uint8_t  tempSensorOk;     // 1 = senzor temperatura OK, 0 = defect/absent
 };
 
-// ── pachet de comanda (gateway → nod) ─────────────────────────────────────
+// pachet de comanda (gateway -> nod)
 struct CommandPacket {
     char    commandId[9];
     uint8_t targetNode;

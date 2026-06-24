@@ -29,7 +29,7 @@ h3 { font-size: .95rem; font-weight: 700; text-transform: uppercase;
      letter-spacing: .06em; color: var(--text-muted); margin-bottom: .8rem; }
 h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 
-/* ── Header ──────────────────────────────────────────────────────────── */
+/* Header */
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: .65rem 1.2rem;
@@ -62,7 +62,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .dot-on  { background: var(--ok);      box-shadow: 0 0 6px var(--ok); }
 .dot-off { background: var(--offline); }
 
-/* ── Layout ──────────────────────────────────────────────────────────── */
+/* Layout */
 .layout {
   display: grid;
   grid-template-columns: 260px 1fr 280px;
@@ -82,7 +82,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
   box-shadow: var(--shadow);
 }
 
-/* ── Stare sistem ────────────────────────────────────────────────────── */
+/* Stare sistem */
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .s-item {
   background: var(--bg3);
@@ -94,7 +94,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .alert-col { color: var(--alert); }
 .warn-col  { color: var(--warn); }
 
-/* ── Carduri noduri ──────────────────────────────────────────────────── */
+/* Carduri noduri */
 #node-list { display: flex; flex-direction: column; gap: .5rem; }
 
 .node-card {
@@ -130,7 +130,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .risk-bar-wrap { margin-top: .4rem; background: var(--bg); border-radius: 3px; height: 5px; overflow: hidden; }
 .risk-bar { height: 100%; border-radius: 3px; transition: width .4s; }
 
-/* ── Butoane ─────────────────────────────────────────────────────────── */
+/* Butoane */
 .btn {
   padding: .4rem .55rem; border: none; border-radius: 6px;
   font-size: .72rem; font-weight: 600;
@@ -144,7 +144,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .btn-cmd:hover    { background: var(--bg3); }
 .btn-alert:hover, .btn-warn:hover, .btn-ok:hover { opacity: .8; }
 
-/* ── Harta 2D ────────────────────────────────────────────────────────── */
+/* Harta 2D */
 .map-wrapper { overflow: auto; display: flex; justify-content: center; }
 #floorplan {
   border-radius: 8px;
@@ -154,7 +154,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
   display: block;
 }
 
-/* ── Grafice ─────────────────────────────────────────────────────────── */
+/* Grafice */
 .chart-tabs { display: flex; gap: .4rem; margin-bottom: .7rem; }
 .tab-btn {
   padding: .3rem .7rem; border: 1px solid var(--border);
@@ -164,7 +164,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .chart-container { height: 200px; position: relative; }
 
-/* ── Jurnal evenimente ───────────────────────────────────────────────── */
+/* Jurnal evenimente */
 .events-log {
   max-height: 220px; overflow-y: auto;
   display: flex; flex-direction: column; gap: .3rem;
@@ -185,7 +185,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .ev-zone { color: var(--primary); min-width: 90px; }
 .ev-desc { color: var(--text); line-height: 1.3; }
 
-/* ── Panou detalii nod ───────────────────────────────────────────────── */
+/* Panou detalii nod */
 .detail-card { display: flex; flex-direction: column; }
 .detail-row {
   display: flex; justify-content: space-between; align-items: center;
@@ -199,7 +199,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .cmd-section { margin-top: .7rem; }
 .cmd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
 
-/* ── Gaz badge ───────────────────────────────────────────────────────── */
+/* Gaz badge */
 .gas-badge {
   display: inline-flex; align-items: center; gap: .3rem;
   font-size: .7rem; font-weight: 700;
@@ -208,7 +208,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 }
 .gas-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── Buton si modal setari alarma ────────────────────────────────────── */
+/* Buton si modal setari alarma */
 .btn-settings {
   padding: .3rem .75rem;
   background: rgba(59,130,246,.15);
@@ -284,7 +284,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 }
 .modal-footer .btn { padding: .45rem .9rem; font-size: .8rem; }
 
-/* ── Toast notificari ────────────────────────────────────────────────── */
+/* Toast notificari */
 #toast-container {
   position: fixed; bottom: 1rem; right: 1rem;
   display: flex; flex-direction: column; gap: .4rem; z-index: 9999;
@@ -300,12 +300,12 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 .toast-alert { border-left: 3px solid var(--alert); }
 .toast-warn  { border-left: 3px solid var(--warn); }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────── */
+/* Scrollbar */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* ── Animatii ────────────────────────────────────────────────────────── */
+/* Animatii */
 @keyframes pulse-alert {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
   50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
@@ -317,7 +317,7 @@ h4 { font-size: .85rem; font-weight: 600; margin-bottom: .5rem; }
 @keyframes fadeIn  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
 @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; } }
 
-/* ── Responsive ──────────────────────────────────────────────────────── */
+/* Responsive */
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 240px 1fr; }
   .right-panel { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }

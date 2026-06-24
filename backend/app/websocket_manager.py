@@ -7,7 +7,7 @@ from datetime import datetime
 
 def _serial(obj):
     if isinstance(obj, datetime):
-        # sufixul Z marcheaza explicit UTC — fara el browser-ul interpreteaza ca ora locala
+        # sufixul Z marcheaza explicit UTC - fara el browser-ul interpreteaza ca ora locala
         return obj.isoformat() + "Z"
     raise TypeError(f"nu stiu sa serializez {type(obj)}")
 

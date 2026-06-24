@@ -138,7 +138,7 @@ class CommandResponse(BaseModel):
 
 
 class SystemStatus(BaseModel):
-    mode:          str  # mereu "HARDWARE" — modul simulare a fost eliminat
+    mode:          str  # mereu "HARDWARE" - modul simulare a fost eliminat
     total_nodes:   int
     online_nodes:  int
     alert_nodes:   int

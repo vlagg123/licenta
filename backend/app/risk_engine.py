@@ -19,7 +19,7 @@ def gas_level_color(level: GasLevel) -> str:
 
 
 # Scorul de risc e calculat pe nod (computeRiskScore in firmware) si trimis gata
-# in pachet. Backend-ul nu il recalculeaza — clasifica direct statusul dupa praguri,
+# in pachet. Backend-ul nu il recalculeaza - clasifica direct statusul dupa praguri,
 # pentru un comportament predictibil si usor de explicat.
 def classify_status_direct(
     gas_value: int,

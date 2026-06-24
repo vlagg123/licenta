@@ -7,12 +7,12 @@
   #define NODE_ID 1
 #endif
 
-// MAC-ul gateway-ului — citit din Serial Monitor la primul flash al gateway-ului
+// MAC-ul gateway-ului - citit din Serial Monitor la primul flash al gateway-ului
 // apare ca: "[GW] MAC: AA:BB:CC:DD:EE:FF"
 static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 
 // Toti pinii sunt pe partea stanga a ESP32-WROOM-32
-#define PIN_MQ2        34   // ADC1 — input-only, potrivit pentru senzor analogic
+#define PIN_MQ2        34   // ADC1 - input-only, potrivit pentru senzor analogic
 #define PIN_LED        2    // LED built-in
 #define PIN_BUZZER     27   // controleaza VCC-ul buzzerului (HIGH = sunet, LOW = silentios)
 #define PIN_BME_SDA    33   // I2C SDA pentru BME280
@@ -34,7 +34,7 @@ static const uint8_t GATEWAY_MAC[6] = { 0xA4, 0xF0, 0x0F, 0x77, 0x57, 0x80 };
 #define GAS_WARNING    400
 #define GAS_ALERT      700
 
-// Clasificare gaz in 5 niveluri — valori ADC brute pentru MQ-2/MQ-135
+// Clasificare gaz in 5 niveluri - valori ADC brute pentru MQ-2/MQ-135
 // calibrate empiric dupa incalzire (~30s pentru citiri stabile, ~24h la prima pornire)
 #define GAS_NORMAL_MAX   300
 #define GAS_LOW_MAX      450

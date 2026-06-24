@@ -11,7 +11,7 @@ static bool bme_ok = false;
 void sensors_init() {
     Wire.begin(PIN_BME_SDA, PIN_BME_SCL);
 
-    // incearca ambele adrese posibile — depinde de starea pinului SDO al modulului
+    // incearca ambele adrese posibile - depinde de starea pinului SDO al modulului
     bme_ok = bme.begin(0x76);
     if (!bme_ok) bme_ok = bme.begin(0x77);
 
@@ -53,7 +53,7 @@ SensorData sensors_read() {
     }
 
     if (!d.tempValid) {
-        // senzor termic indisponibil — trimitem valori neutre marcate ca nevalide,
+        // senzor termic indisponibil - trimitem valori neutre marcate ca nevalide,
         // ca monitorizarea gazului sa continue iar defectul sa fie vizibil pe dashboard
         d.temperature = 0.0f;
         d.humidity    = 0.0f;
@@ -66,7 +66,7 @@ SensorData sensors_read() {
     d.gasValue = sum / 4;
 
     // gazul e mereu disponibil pe ADC, deci pachetul merita trimis chiar daca
-    // senzorul de temperatura e defect — gazul nu trebuie pierdut niciodata
+    // senzorul de temperatura e defect - gazul nu trebuie pierdut niciodata
     d.valid = true;
     return d;
 }

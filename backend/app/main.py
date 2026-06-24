@@ -139,7 +139,7 @@ async def _on_packet(pkt: SensorPacket) -> None:
     if prev_status == NodeStatus.OFFLINE:
         asyncio.create_task(_push_thresholds_to_node(pkt.node_id))
 
-    # scrierile in DB sunt separate de broadcast — o eroare DB nu blocheaza UI-ul
+    # scrierile in DB sunt separate de broadcast - o eroare DB nu blocheaza UI-ul
     try:
         if glevel == GasLevel.CRITICAL and prev_gas_level != GasLevel.CRITICAL:
             _record_event(pkt.node_id, "GAS_CRITICAL",

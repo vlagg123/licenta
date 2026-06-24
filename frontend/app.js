@@ -367,7 +367,7 @@ function switchChart(mode) {
   refreshChart();
 }
 
-// Pozitiile nodurilor pe harta 2D — corespund cu NODES_CONFIG din backend
+// Pozitiile nodurilor pe harta 2D - corespund cu NODES_CONFIG din backend
 const FLOOR_NODES = {
   1: { x: 90,  y: 180, label: 'N1\nIntrare' },
   2: { x: 310, y: 180, label: 'N2\nDepozit' },
@@ -411,7 +411,7 @@ function drawFloorplan() {
   g.fillText('Camera',          438, 50);
   g.fillText('Tehnica',         438, 65);
 
-  // legaturi wireless — linie intrerupta daca unul din noduri e offline
+  // legaturi wireless - linie intrerupta daca unul din noduri e offline
   FLOOR_EDGES.forEach(([a, b]) => {
     const na = FLOOR_NODES[a], nb = FLOOR_NODES[b];
     const broken = (nodes[a]?.status || 'NORMAL') === 'OFFLINE' ||
@@ -430,7 +430,7 @@ function drawFloorplan() {
     g.setLineDash([]);
   });
 
-  // ruta activa a nodului selectat — evidentiata cu galben
+  // ruta activa a nodului selectat - evidentiata cu galben
   const selNode = nodes[selectedNodeId];
   if (selNode && Array.isArray(selNode.route) && selNode.route.length > 1) {
     g.strokeStyle = '#f59e0b';

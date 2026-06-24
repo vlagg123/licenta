@@ -52,7 +52,7 @@ void commands_handle(const CommandPacket& cmd) {
             break;
 
         case CMD_TEST_ALARM:
-            // nu sunam aici — comanda vine din callback-ul ESP-NOW, iar delay-urile
+            // nu sunam aici - comanda vine din callback-ul ESP-NOW, iar delay-urile
             // ar bloca stiva radio; marcam si executam in loop() prin commands_run_pending()
             _test_pending = true;
             Serial.println("[CMD] test alarma programat");

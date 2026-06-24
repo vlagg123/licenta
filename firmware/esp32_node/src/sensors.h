@@ -6,7 +6,7 @@ struct SensorData {
     float humidity;     // procent relativ
     float pressure;     // hPa
     int   gasValue;     // valoare ADC bruta 0-4095
-    bool  tempValid;    // false daca BME280 e absent/defect — temperatura nu e de incredere
+    bool  tempValid;    // false daca BME280 e absent/defect - temperatura nu e de incredere
     bool  valid;        // true daca pachetul merita trimis (gazul e mereu disponibil)
 };
 
