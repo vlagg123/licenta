@@ -9,7 +9,6 @@ struct NeighbourEntry {
     uint8_t  nodeId;
     uint8_t  mac[6];
     int8_t   rssi;          // RSSI-ul ultimului pachet primit (dBm)
-    uint8_t  battery;       // nivelul bateriei la ultima receptie (%)
     uint32_t lastSeenMs;    // momentul ultimului pachet primit (millis)
     bool     alive;
 };
@@ -24,9 +23,9 @@ struct RouteEntry {
 };
 
 void     routing_init(uint8_t selfId);
-void     routing_update_neighbour(uint8_t nodeId, const uint8_t* mac, int8_t rssi, uint8_t battery);
+void     routing_update_neighbour(uint8_t nodeId, const uint8_t* mac, int8_t rssi);
 void     routing_mark_dead(uint8_t nodeId);
 void     routing_check_timeouts();
 RouteEntry routing_best_next_hop(uint8_t destination, bool alertMode);
 uint8_t  routing_hop_count_to_gateway();
-float    routing_link_cost(int8_t rssi, uint8_t battery, bool alertMode);
+float    routing_link_cost(int8_t rssi, bool alertMode);

@@ -72,7 +72,6 @@ class SensorPacket(BaseModel):
     route:        List[int]
     hop_count:    int
     rssi:         int
-    battery:      int
     latency_ms:   int
     temp_sensor_ok: bool = True
     timestamp:    datetime
@@ -99,7 +98,6 @@ class NodeState(BaseModel):
     route:           List[int]   = Field(default_factory=list)
     hop_count:       int  = 1
     rssi:            int  = -60
-    battery:         int  = 100
     latency_ms:      int  = 10
     temp_sensor_ok:  bool = True
     last_seen:       Optional[datetime] = None

@@ -19,7 +19,6 @@ struct SensorPacket {
     uint8_t riskScore;
     uint8_t hopCount;
     int8_t  rssi;
-    uint8_t battery;
     uint32_t timestampMs;
     uint8_t  route[MAX_HOPS];  // ID-urile nodurilor de pe traseul pachetului, 0 = gateway
     uint8_t  routeLen;

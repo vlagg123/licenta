@@ -35,7 +35,6 @@ void serial_bridge_send_packet(const SensorPacket& pkt, int8_t rssi) {
 
     doc["hop_count"]     = pkt.hopCount;
     doc["rssi"]          = rssi;
-    doc["battery"]       = pkt.battery;
     doc["latency_ms"]    = pkt.hopCount * 8 + 5;
     doc["temp_sensor_ok"] = (bool)pkt.tempSensorOk;
 

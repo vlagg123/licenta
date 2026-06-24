@@ -128,7 +128,6 @@ async def _on_packet(pkt: SensorPacket) -> None:
     ns.route           = pkt.route
     ns.hop_count       = pkt.hop_count
     ns.rssi            = pkt.rssi
-    ns.battery         = pkt.battery
     ns.latency_ms      = pkt.latency_ms
     ns.temp_sensor_ok  = pkt.temp_sensor_ok
     ns.last_seen       = pkt.timestamp
@@ -179,7 +178,6 @@ async def _on_packet(pkt: SensorPacket) -> None:
         "route":           pkt.route,
         "hop_count":       pkt.hop_count,
         "rssi":            pkt.rssi,
-        "battery":         pkt.battery,
         "latency_ms":      pkt.latency_ms,
         "temp_sensor_ok":  pkt.temp_sensor_ok,
         "timestamp":       pkt.timestamp,

@@ -28,10 +28,10 @@ static int   histIdx        = 0;
 static uint8_t  lastStatus   = 0;
 static GasLevel lastGasLevel = GAS_NORMAL;
 
-// Scor de risc multi-factor (0-100): combina temperatura, gaz, trend, baterie si semnal.
+// Scor de risc multi-factor (0-100): combina temperatura, gaz, trend si semnal.
 // E doar o valoare informativa trimisa la dashboard; statusul care aprinde LED-ul si
 // porneste buzzerul se decide separat, pe praguri directe, in classifyStatus().
-static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
+static int computeRiskScore(float temp, int gas, int8_t rssi) {
     int score = 0;
 
     // componenta temperatura - proportionala pana la prag, maxima dupa
@@ -54,7 +54,6 @@ static int computeRiskScore(float temp, int gas, int battery, int8_t rssi) {
     else if (delta >= 5.0f)  score += 12;
     else if (delta >= 2.0f)  score += 5;
 
-    if (battery < 20) score += 5;
     if (rssi < -80)   score += 5;
 
     return min(100, max(0, score));
@@ -99,7 +98,7 @@ static void updateIndicators(uint8_t status, GasLevel gasLevel) {
 
 static void onPacketReceived(const SensorPacket& pkt, int8_t rssi) {
     uint8_t mac[6] = {0};
-    routing_update_neighbour(pkt.sourceId, mac, rssi, pkt.battery);
+    routing_update_neighbour(pkt.sourceId, mac, rssi);
 
     // daca pachetul nu e pentru acest nod, il redirectioneaza catre destinatie
     if (pkt.sourceId != nodeId && pkt.destinationId != nodeId) {
@@ -142,7 +141,7 @@ static void sendSensorPacket(const SensorData& sd) {
     }
 
     GasLevel gasLevel = classifyGasLevel(sd.gasValue, gasThresholds);
-    int risk = computeRiskScore(sd.temperature, sd.gasValue, 85, rssi);
+    int risk = computeRiskScore(sd.temperature, sd.gasValue, rssi);
 
     uint8_t status = classifyStatus(sd.temperature, sd.gasValue, gasLevel);
     inAlertMode = (status == 2);
@@ -160,7 +159,6 @@ static void sendSensorPacket(const SensorData& sd) {
     pkt.riskScore     = (uint8_t)risk;
     pkt.hopCount      = 1;
     pkt.rssi          = rssi;
-    pkt.battery       = 85;  // hardcodat - citirea reala necesita divizor de tensiune pe ADC
     pkt.timestampMs   = millis();
     pkt.route[0]      = nodeId;
     pkt.routeLen      = 1;
