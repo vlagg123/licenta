@@ -28,7 +28,7 @@ def classify_status_direct(
 ) -> tuple[NodeStatus, MessageType, Priority]:
     gas_critical  = gas_value >= thresholds.critical_min
     temp_critical = temperature >= thresholds.temp_critical
-    gas_warning   = gas_value > thresholds.normal_max
+    gas_warning   = gas_value > thresholds.low_max
     temp_warning  = temperature >= thresholds.temp_warning
 
     if gas_critical or temp_critical:

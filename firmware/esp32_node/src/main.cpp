@@ -65,7 +65,7 @@ static int computeRiskScore(float temp, int gas, int8_t rssi) {
 // reactioneaza identic cu ce arata dashboard-ul, nu mai surd.
 static uint8_t classifyStatus(float temp, int gas, GasLevel gasLevel) {
     bool critical = (gasLevel == GAS_CRITICAL) || (temp >= tempAlert);
-    bool warning  = (gas > gasThresholds.normalMax) || (temp >= tempWarning);
+    bool warning  = (gas > gasThresholds.lowMax) || (temp >= tempWarning);
     if (critical) return 2;  // ALERT
     if (warning)  return 1;  // WARNING
     return 0;                // NORMAL
