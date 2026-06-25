@@ -190,6 +190,10 @@ void setup() {
     comm_register_receive_callback(onPacketReceived);
     comm_register_command_callback(onCommandReceived);
 
+    // decaleaza primul pachet dupa NODE_ID ca sa nu se ciocneasca toate nodurile
+    // la pornire simultana: nod1=0s, nod2=1.2s, nod3=2.4s, nod4=3.6s
+    uint32_t jitter = (nodeId - 1) * 1200;
+    if (jitter > 0) delay(jitter);
     Serial.println("[BOOT] gata");
 }
 
